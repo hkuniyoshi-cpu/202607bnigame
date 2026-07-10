@@ -217,12 +217,33 @@ function rebuildSummary() {
 //   3) syncAdminEntries() を実行 → scoresシートに反映＆「反映済み ✓」印
 
 const ADMIN_SHEET_NAME = '管理者入力';
+// 管理者は全項目（リーダーが入力する7項目 + 管理者専用4項目）を入力できる
 const ADMIN_ACTIVITY_MAP = {
-  '欠席':         'absent',
-  '遅刻・早退':   'late',
-  '推薦の言葉':   'testimonial',
-  'ビジター招待': 'visitor',
+  'キースキルズトレーニング':  'key_skills',
+  'マインドセットトレーニング': 'mindset',
+  'その他BNIトレーニング':     'training_other',
+  'MSアドオン受講':           'ms_addon',
+  'パワーチームWS 前半':      'pt_ws_first',
+  'パワーチームWS 後半':      'pt_ws_second',
+  '1to1':                    'one_to_one',
+  'ビジター招待':             'visitor',
+  '推薦の言葉':               'testimonial',
+  '欠席':                    'absent',
+  '遅刻・早退':               'late',
 };
+const ADMIN_REFERENCE_ROWS = [
+  ['キースキルズトレーニング',  '+1P'],
+  ['マインドセットトレーニング', '+1P'],
+  ['その他BNIトレーニング',    '+1P（ネットワーキング／ディベロップ 等）'],
+  ['MSアドオン受講',          '+2P'],
+  ['パワーチームWS 前半',     '+5P（ターゲットマーケット）'],
+  ['パワーチームWS 後半',     '+10P（パワーチーム構築）'],
+  ['1to1',                   '+1P（30分以上・沖縄リージョン内）'],
+  ['ビジター招待',            '+3P'],
+  ['推薦の言葉',              '+2P（チーム週上限3件）'],
+  ['欠席',                   '-10P'],
+  ['遅刻・早退',              '-5P'],
+];
 
 function setupAdminSheet() {
   const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
@@ -289,12 +310,9 @@ function setupAdminSheet() {
   // 参考: 活動と点数のリファレンス
   sh.getRange(startRow, 9).setValue('参考：活動と点数');
   sh.getRange(startRow, 9).setFontWeight('bold').setFontColor('#666');
-  [
-    ['欠席',         '-10P'],
-    ['遅刻・早退',   '-5P'],
-    ['推薦の言葉',   '+2P（チーム週上限3件）'],
-    ['ビジター招待', '+3P'],
-  ].forEach((row, i) => {
+  sh.setColumnWidth(9, 200);
+  sh.setColumnWidth(10, 240);
+  ADMIN_REFERENCE_ROWS.forEach((row, i) => {
     sh.getRange(startRow + 1 + i, 9, 1, 2).setValues([row]).setFontColor('#666').setFontSize(10);
   });
 
@@ -390,6 +408,44 @@ function _buildAdminLookup() {
  * 手動一括反映：管理者入力シートの未反映行を全件処理する。
  * 単発の onEdit で拾えなかった行や、CSV貼り付け後に使う。
  */
+/**
+ * 【既存データを保持したまま】管理者入力シートの活動プルダウンと参考表を最新化する。
+ * 活動リストの変更後、シートを作り直したくない時に使う。
+ */
+function refreshAdminSheetDropdowns() {
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const sh = ss.getSheetByName(ADMIN_SHEET_NAME);
+  if (!sh) {
+    SpreadsheetApp.getUi().alert('管理者入力シートが見つかりません。先に setupAdminSheet() を実行してください。');
+    return;
+  }
+  const HEADER_ROW = 5;
+  const DATA_ROWS = Math.max(50, sh.getMaxRows() - HEADER_ROW);
+
+  // 活動列(D)のドロップダウンを最新の全項目に差し替え
+  const actRule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(Object.keys(ADMIN_ACTIVITY_MAP), true)
+    .setAllowInvalid(false).build();
+  sh.getRange(HEADER_ROW + 1, 4, DATA_ROWS, 1).setDataValidation(actRule);
+
+  // 参考表を再描画（右側の I,J 列）
+  const refStart = HEADER_ROW + 1;
+  // 既存の参考表をクリア（I,J列の最大20行）
+  sh.getRange(refStart - 1, 9, 22, 2).clearContent();
+  sh.getRange(refStart - 1, 9).setValue('参考：活動と点数').setFontWeight('bold').setFontColor('#666');
+  sh.setColumnWidth(9, 200);
+  sh.setColumnWidth(10, 240);
+  ADMIN_REFERENCE_ROWS.forEach((row, i) => {
+    sh.getRange(refStart + i, 9, 1, 2).setValues([row]).setFontColor('#666').setFontSize(10);
+  });
+
+  SpreadsheetApp.getUi().alert(
+    '✅ 管理者入力シートを更新しました\n\n' +
+    '活動プルダウンに全11項目が選択できるようになりました。\n' +
+    '（既存の入力データは保持されています）'
+  );
+}
+
 function syncAdminEntries() {
   const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const admin = ss.getSheetByName(ADMIN_SHEET_NAME);
