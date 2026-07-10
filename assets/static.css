@@ -1,0 +1,83 @@
+/* 静的ページ（プライバシー・ガイドライン・NotFound）共通 */
+
+.static-container {
+  max-width: 780px;
+  margin: 40px auto;
+  padding: 0 24px 80px;
+}
+
+.static-container h1 {
+  font-size: 28px; font-weight: 900;
+  margin-bottom: 8px;
+  color: #fff;
+  letter-spacing: -.5px;
+}
+.static-container .lead {
+  font-size: 13px; color: rgba(255,255,255,.4);
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.static-container h2 {
+  font-size: 18px; font-weight: 800;
+  margin: 36px 0 12px;
+  color: #fff;
+  padding-left: 12px;
+  border-left: 3px solid #b50000;
+}
+.static-container h3 {
+  font-size: 15px; font-weight: 700;
+  margin: 24px 0 8px;
+  color: rgba(255,255,255,.9);
+}
+
+.static-container p {
+  font-size: 14px; line-height: 1.9;
+  color: rgba(255,255,255,.7);
+  margin-bottom: 12px;
+}
+.static-container ul, .static-container ol {
+  padding-left: 24px;
+  margin-bottom: 12px;
+}
+.static-container li {
+  font-size: 14px; line-height: 1.9;
+  color: rgba(255,255,255,.7);
+  margin-bottom: 4px;
+}
+.static-container strong { color: #fff; }
+.static-container a { color: #ff7c7c; text-decoration: underline; }
+.static-container a:hover { color: #ffa0a0; }
+
+.note-box {
+  background: rgba(255,193,7,.08);
+  border: 1px solid rgba(255,193,7,.2);
+  color: rgba(255,255,255,.85);
+  padding: 16px 20px;
+  border-radius: 10px;
+  margin: 20px 0;
+  font-size: 13px; line-height: 1.7;
+}
+.note-box strong { color: #ffc107; }
+
+.footer-links {
+  text-align: center;
+  padding: 40px 20px 20px;
+  font-size: 12px; color: rgba(255,255,255,.35);
+  border-top: 1px solid rgba(255,255,255,.05);
+  margin-top: 40px;
+}
+.footer-links a {
+  color: rgba(255,255,255,.5);
+  text-decoration: none;
+  margin: 0 12px;
+}
+.footer-links a:hover { color: #fff; }
+.footer-links .sep { color: rgba(255,255,255,.15); }
+.footer-links .copy {
+  display: block;
+  margin-top: 12px;
+  font-size: 11px;
+  color: rgba(255,255,255,.25);
+}

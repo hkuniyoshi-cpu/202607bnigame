@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<meta name="googlebot" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>BNI ゲーム — スコア入力（チームリーダー用）</title>
+<meta name="description" content="BNI TOPチャプター 2026年7月ゲーム — チームリーダー用スコア入力画面。">
+
+<!-- OGP は入力ページには不要（トークン漏れ防止でSNS共有非推奨） -->
+<meta property="og:title" content="BNI ゲーム スコア入力">
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<meta name="theme-color" content="#b50000">
+
+<link rel="stylesheet" href="../assets/shared.css">
+<link rel="stylesheet" href="../assets/input.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="org">BNI TOP Chapter</div>
+    <div class="title">スコア入力（チームリーダー用）</div>
+    <div class="period">7月13日〜8月12日 ｜ 毎週日曜 23:59 締切（最終週は8/12まで）</div>
+  </div>
+  <div class="header-right">
+    <a href="../" class="refresh-btn">← 進捗ページへ</a>
+  </div>
+</header>
+
+<div id="errorBox" class="error-box" style="display:none"></div>
+
+<div class="container">
+  <div class="team-name" id="teamName">…読み込み中</div>
+  <div class="team-sub" id="teamSub"></div>
+
+  <div class="current-scores" id="scoreCards"></div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div class="form-title">スコアを記録する</div>
+
+    <div class="form-grid">
+      <div class="form-row wide">
+        <label>メンバー</label>
+        <select id="memberSelect"></select>
+      </div>
+      <div class="form-row wide">
+        <label>活動</label>
+        <select id="activitySelect" onchange="updatePreview()"></select>
+      </div>
+      <div class="form-row">
+        <label>件数</label>
+        <input type="number" id="countInput" value="1" min="1" max="20" oninput="updatePreview()">
+      </div>
+      <div class="form-row" style="justify-content:flex-end">
+        <label style="visibility:hidden">-</label>
+        <button class="btn btn-primary" id="submitBtn" onclick="submitForm()">記録する</button>
+      </div>
+    </div>
+
+    <div class="preview" id="preview"></div>
+
+    <div class="hint">
+      💡 「推薦の言葉」はチーム上限3件/週まで自動制限されます（4件目以降は加点されません）<br>
+      💡 誤入力は下の履歴から削除できます
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="history-title">入力履歴</div>
+    <div class="week-tabs" id="weekTabs"></div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <footer class="footer-links">
+    <a href="../">進捗ページ</a><span class="sep">｜</span>
+    <a href="../guidelines/">利用ガイドライン</a><span class="sep">｜</span>
+    <a href="../privacy/">プライバシー</a>
+    <div class="copy">© 2026 BNI TOP Chapter ｜ Developed by <a href="https://search-mania.net" target="_blank" rel="noopener">SearchMania Inc.</a></div>
+  </footer>
+</div>
+
+<link rel="stylesheet" href="../assets/static.css">
+
+<script src="../assets/config.js"></script>
+<script src="../assets/api.js"></script>
+<script src="../assets/mock.js"></script>
+<script src="../assets/input.js"></script>
+</body>
+</html>

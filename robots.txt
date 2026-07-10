@@ -1,0 +1,37 @@
+# 検索エンジン用: インデックス拒否
+# ページ内の <meta name="robots" content="noindex"> と併用
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+# SNS/チャットのリンクプレビュー生成は許可
+# （Slack, LINE, X(Twitter), Facebook, Discord など）
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Slackbot-LinkExpanding
+Allow: /
+
+User-agent: Slackbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Discordbot
+Allow: /
+
+User-agent: LineBot
+Allow: /
+
+# その他のクローラーはデフォルト拒否
+User-agent: *
+Disallow: /

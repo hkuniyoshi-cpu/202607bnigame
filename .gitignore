@@ -1,0 +1,15 @@
+node_modules/
+.superpowers/
+.claude/
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.local
+
+# clasp
+.clasprc.json
+gas/.clasp.json
+
+# scratch / demo
+demo-progress.html

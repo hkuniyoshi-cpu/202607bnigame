@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+<meta name="googlebot" content="noindex,nofollow">
+<title>BNI TOPチャプター ゲーム進捗 2026-07</title>
+<meta name="description" content="BNI TOPチャプター 2026年7月チャプターゲームのリアルタイム進捗ページ。17チーム・約90名で競う4週間のポイントレース。">
+
+<!-- OGP / Twitter Card -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="BNI TOP Chapter">
+<meta property="og:title" content="BNI TOPチャプター ゲーム進捗 2026">
+<meta property="og:description" content="17チーム・約90名で競う4週間のポイントレース。リアルタイム進捗をチェック。">
+<meta property="og:image" content="og-image.svg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="BNI TOPチャプター ゲーム進捗 2026">
+<meta name="twitter:description" content="17チーム・約90名で競う4週間のポイントレース。">
+<meta name="twitter:image" content="og-image.svg">
+
+<!-- Favicon -->
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="theme-color" content="#b50000">
+
+<link rel="stylesheet" href="assets/shared.css">
+<link rel="stylesheet" href="assets/progress.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="org">BNI TOP Chapter</div>
+    <div class="title">チャプターゲーム 2026</div>
+    <div class="period">7月13日（月）〜 8月12日（水）</div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="countdown">
+      <div class="num" id="daysLeft">—</div>
+      <div class="label">DAYS LEFT</div>
+    </div>
+    <button class="refresh-btn" onclick="reloadChart()">↺ 再読み込み</button>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="v" id="teamCount">—</div><div class="l">TEAMS</div></div>
+  <div class="stat-div"></div>
+  <div class="stat"><div class="v" id="memberCount">—</div><div class="l">MEMBERS</div></div>
+  <div class="stat-div"></div>
+  <div class="stat"><div class="v" id="weekNum">—</div><div class="l">週目</div></div>
+  <div class="stat-div"></div>
+  <div class="progress-stat">
+    <div class="prow">
+      <span class="pl" id="progressLabel">ゲーム進捗</span>
+      <span class="pl" id="pctLabel">—</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<div id="errorBox" class="error-box" style="display:none"></div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="ct" id="chartTitle">チームスコア推移（平均点）</div>
+        <div class="cs" id="chartSub">毎週日曜23:59時点での累積平均スコア</div>
+      </div>
+      <div class="header-controls">
+        <button class="filter-btn active-filter" id="filterBtn" onclick="toggleFilter()">TOP5 強調表示中</button>
+        <div class="toggle">
+          <button class="tbtn active" onclick="switchView('team',this)">チームビュー</button>
+          <button class="tbtn" onclick="switchView('individual',this)">個人ビュー</button>
+        </div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="mainChart"></canvas>
+    </div>
+    <div class="custom-legend" id="customLegend"></div>
+  </div>
+
+  <div class="sidebar">
+    <div class="rank-label" id="rankLabel">現在の順位</div>
+    <div id="rankingList"></div>
+  </div>
+
+  <div class="schedule-card">
+    <div class="schedule-title">期間中の対象トレーニング</div>
+    <div class="schedule-hint">これらのイベント参加で該当ポイントが加算されます｜※WUP＋本編は1回のトレーニングとしてカウント</div>
+
+    <div class="week-group">
+      <div class="week-header">第1週　7月13日（日）〜 7月19日（土）</div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">7/13</div><div class="sched-dow">日</div></div>
+        <div class="sched-time">10:00〜13:00</div>
+        <div class="sched-body">
+          <div class="sched-name">チャプターディベロップメントトレーニング</div>
+          <div class="sched-tags"><span class="sched-tag online">オンライン</span><span class="sched-tag mindset">その他BNIトレーニング +1P</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">7/13</div><div class="sched-dow">日</div></div>
+        <div class="sched-time">14:00〜17:00</div>
+        <div class="sched-body">
+          <div class="sched-name">マインドセットトレーニング</div>
+          <div class="sched-tags"><span class="sched-tag online">オンライン</span><span class="sched-tag mindset">マインドセット +1P</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">7/14</div><div class="sched-dow">月</div></div>
+        <div class="sched-time">13:00〜16:00</div>
+        <div class="sched-body">
+          <div class="sched-name">リファーラル（WUP + キースキルズWS）</div>
+          <div class="sched-tags"><span class="sched-tag key-skills">キースキルズ +1P</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">7/16</div><div class="sched-dow">水</div></div>
+        <div class="sched-time">13:00〜16:00</div>
+        <div class="sched-body">
+          <div class="sched-name">ネットワーキングスキルトレーニング</div>
+          <div class="sched-tags"><span class="sched-tag mindset">その他BNIトレーニング +1P</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item highlight">
+        <div class="sched-date"><div class="sched-day">7/16</div><div class="sched-dow">水</div></div>
+        <div class="sched-time">時間別途</div>
+        <div class="sched-body">
+          <div class="sched-name">パワーチームトレーニング</div>
+          <div class="sched-tags"><span class="sched-tag pt-ws">前半+5P（ターゲットマーケット）／後半+10P（パワーチーム構築）</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="week-group">
+      <div class="week-header">第2週　7月20日（日）〜 7月26日（土）</div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">7/21</div><div class="sched-dow">月</div></div>
+        <div class="sched-time">10:00〜13:00</div>
+        <div class="sched-body">
+          <div class="sched-name">メインプレゼンテーション（WUP + キースキルズWS）</div>
+          <div class="sched-tags"><span class="sched-tag key-skills">キースキルズ +1P</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item highlight">
+        <div class="sched-date"><div class="sched-day">7/21</div><div class="sched-dow">月</div></div>
+        <div class="sched-time">時間別途</div>
+        <div class="sched-body">
+          <div class="sched-name">パワーチームトレーニング</div>
+          <div class="sched-tags"><span class="sched-tag pt-ws">前半+5P（ターゲットマーケット）／後半+10P（パワーチーム構築）</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="week-group">
+      <div class="week-header">第3週　7月27日（日）〜 8月2日（土）</div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">7/29</div><div class="sched-dow">火</div></div>
+        <div class="sched-time">13:00〜16:00</div>
+        <div class="sched-body">
+          <div class="sched-name">ウィークリープレゼンテーション（WUP + キースキルズWS）</div>
+          <div class="sched-tags"><span class="sched-tag key-skills">キースキルズ +1P</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item highlight">
+        <div class="sched-date"><div class="sched-day">7/30</div><div class="sched-dow">水</div></div>
+        <div class="sched-time">12:00〜15:00</div>
+        <div class="sched-body">
+          <div class="sched-name">対面ターゲットマーケットワークショップ <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400">（パワーチーム前半）</span></div>
+          <div class="sched-tags"><span class="sched-tag offline">対面</span><span class="sched-tag okinawa">沖縄メンバー限定</span><span class="sched-tag pt-ws">パワーチームWS 前半 +5P</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item highlight">
+        <div class="sched-date"><div class="sched-day">7/30</div><div class="sched-dow">水</div></div>
+        <div class="sched-time">15:30〜17:30</div>
+        <div class="sched-body">
+          <div class="sched-name">対面パワーチームワークショップ <span style="font-size:11px;color:rgba(255,255,255,.4);font-weight:400">（パワーチーム後半）</span></div>
+          <div class="sched-tags"><span class="sched-tag offline">対面</span><span class="sched-tag okinawa">沖縄メンバー限定</span><span class="sched-tag pt-ws">パワーチームWS 後半 +10P</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="week-group">
+      <div class="week-header">第4週　8月3日（日）〜 8月12日（水・ゲーム最終日／延長）</div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">8/5</div><div class="sched-dow">火</div></div>
+        <div class="sched-time">12:00〜15:00</div>
+        <div class="sched-body">
+          <div class="sched-name">メインプレゼンテーション（WUP + キースキルズWS）</div>
+          <div class="sched-tags"><span class="sched-tag key-skills">キースキルズ +1P</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">8/7</div><div class="sched-dow">木</div></div>
+        <div class="sched-time">14:00〜17:00</div>
+        <div class="sched-body">
+          <div class="sched-name">【対面開催】メンバーズフォーラム</div>
+          <div class="sched-tags"><span class="sched-tag offline">対面</span><span class="sched-tag okinawa">沖縄リージョン限定</span><span class="sched-tag mindset">その他BNIトレーニング +1P</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">8/10</div><div class="sched-dow">日</div></div>
+        <div class="sched-time">13:00〜16:00</div>
+        <div class="sched-body">
+          <div class="sched-name">ウィークリープレゼンテーション（WUP + キースキルズWS）</div>
+          <div class="sched-tags"><span class="sched-tag key-skills">キースキルズ +1P</span><span class="sched-tag warn">⚠ 時間重複あり</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">8/10</div><div class="sched-dow">日</div></div>
+        <div class="sched-time">14:00〜17:00</div>
+        <div class="sched-body">
+          <div class="sched-name">マインドセットトレーニング</div>
+          <div class="sched-tags"><span class="sched-tag online">オンライン</span><span class="sched-tag mindset">マインドセット +1P</span><span class="sched-tag warn">⚠ 時間重複あり</span></div>
+        </div>
+      </div>
+
+      <div class="sched-item">
+        <div class="sched-date"><div class="sched-day">8/12</div><div class="sched-dow">水</div></div>
+        <div class="sched-time">13:00〜16:00</div>
+        <div class="sched-body">
+          <div class="sched-name">1to1（WUP + キースキルズWS）</div>
+          <div class="sched-tags"><span class="sched-tag key-skills">キースキルズ +1P</span><span class="sched-tag warn">ゲーム最終日</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="rb-footer" style="margin-top:12px">
+      💡 <strong>ウォーミングアップ(WUP) + 本編は同一トレーニング扱い</strong>です。両方参加でもポイントは1回分。<br>
+      💡 <strong>沖縄限定</strong>のイベントは対面開催のため、県外メンバーは対象外です。<br>
+      💡 <strong>8/10 の時間重複</strong>：ウィークリーとマインドセットが重なるため、どちらか選択して参加してください。
+    </div>
+  </div>
+
+  <div class="rulebook">
+    <div class="rb-title">ルールブック — 点数配分</div>
+
+    <div class="rb-section-label">🟢 トレーニング</div>
+    <div class="rules-grid">
+      <div class="rule-card"><div class="rc-act">キースキルズ<br>トレーニング</div><div class="rc-pts p">+1<small style="font-size:14px">p</small></div><div class="rc-note">メインプレゼン・WP・リファーラル・1to1</div></div>
+      <div class="rule-card"><div class="rc-act">マインドセット<br>トレーニング</div><div class="rc-pts p">+1<small style="font-size:14px">p</small></div><div class="rc-note">1回につき</div></div>
+      <div class="rule-card"><div class="rc-act">その他<br>BNIトレーニング</div><div class="rc-pts p">+1<small style="font-size:14px">p</small></div><div class="rc-note">ネットワーキング／CD 等</div></div>
+      <div class="rule-card"><div class="rc-act">MSアドオン</div><div class="rc-pts p">+2<small style="font-size:14px">p</small></div><div class="rc-note">1回につき</div></div>
+      <div class="rule-card"><div class="rc-act">パワーチームWS<br>前半</div><div class="rc-pts p">+5<small style="font-size:14px">p</small></div><div class="rc-note">ターゲットマーケット</div></div>
+      <div class="rule-card"><div class="rc-act">パワーチームWS<br>後半</div><div class="rc-pts p">+10<small style="font-size:14px">p</small></div><div class="rc-note">パワーチーム構築</div></div>
+    </div>
+
+    <div class="rb-section-label">🟢 活動</div>
+    <div class="rules-grid act-grid">
+      <div class="rule-card"><div class="rc-act">1to1 実施</div><div class="rc-pts p">+1<small style="font-size:14px">p</small></div><div class="rc-note">30分以上・沖縄リージョン内</div></div>
+      <div class="rule-card"><div class="rc-act">ビジター招待</div><div class="rc-pts p">+3<small style="font-size:14px">p</small></div><div class="rc-note">1名につき</div></div>
+      <div class="rule-card"><div class="rc-act">推薦の言葉</div><div class="rc-pts p">+2<small style="font-size:14px">p</small></div><div class="rc-note">チーム上限3つ/週まで</div></div>
+    </div>
+
+    <div class="rb-section-label">🔴 マイナス</div>
+    <div class="rules-grid minus-grid">
+      <div class="rule-card"><div class="rc-act">欠席</div><div class="rc-pts n">−10<small style="font-size:14px">p</small></div><div class="rc-note">1回につき</div></div>
+      <div class="rule-card"><div class="rc-act">遅刻・早退</div><div class="rc-pts n">−5<small style="font-size:14px">p</small></div><div class="rc-note">1回につき</div></div>
+    </div>
+
+    <div class="rb-footer">
+      <strong>集計方法：</strong>各メンバーがコネクト入力＆チームへ報告 → チームリーダーが専用フォームへ入力 → バイスが集計、1週間毎に途中経過を発表<br>
+      <strong>ポイント計算：</strong>チームスコアは参加メンバーの個人点数の平均値で算出（途中退場者はその週の人数から除外）<br>
+      <strong>締切：</strong>毎週日曜 23:59<br>
+      <strong>チーム編成：</strong>全員参加・1チーム5名（6月入会メンバーまで、退会者いれば人数調整）｜チーム名6文字以内・記号NG
+    </div>
+  </div>
+</div>
+
+<footer class="footer-links">
+  <a href="./">進捗ページ</a><span class="sep">｜</span>
+  <a href="guidelines/">利用ガイドライン</a><span class="sep">｜</span>
+  <a href="privacy/">プライバシー</a>
+  <div class="copy">© 2026 BNI TOP Chapter ｜ Developed by <a href="https://search-mania.net" target="_blank" rel="noopener">SearchMania Inc.</a></div>
+</footer>
+
+<link rel="stylesheet" href="assets/static.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="assets/config.js"></script>
+<script src="assets/api.js"></script>
+<script src="assets/mock.js"></script>
+<script src="assets/progress.js"></script>
+</body>
+</html>
