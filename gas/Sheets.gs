@@ -66,9 +66,11 @@ const _ACTIVITY_LABEL_FORMULA =
 
 function appendScore(entry) {
   const sh = _sheet(CONFIG.SHEETS.SCORES);
+  // タイムスタンプは Date オブジェクトで書き込む（Sheetsで日時フォーマット可能に）
+  const ts = entry.timestamp instanceof Date ? entry.timestamp : new Date(entry.timestamp || Date.now());
   sh.appendRow([
     entry.id,
-    entry.timestamp,
+    ts,
     entry.team_id,
     entry.member_id,
     entry.activity,
@@ -77,6 +79,8 @@ function appendScore(entry) {
     entry.week,
   ]);
   const row = sh.getLastRow();
+  // タイムスタンプ列を「yyyy-mm-dd HH:mm」に整形
+  sh.getRange(row, 2).setNumberFormat('yyyy-mm-dd HH:mm');
   // 見やすい列（I: チーム名, J: メンバー名, K: 活動名）を VLOOKUP で埋める
   sh.getRange(row, 9).setFormula(`=IFERROR(VLOOKUP(C${row},teams!A:B,2,FALSE),"")`);
   sh.getRange(row, 10).setFormula(`=IFERROR(VLOOKUP(D${row},members!A:B,2,FALSE),"")`);

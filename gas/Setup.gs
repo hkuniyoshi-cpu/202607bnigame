@@ -739,12 +739,28 @@ function enhanceScoresSheet() {
   sh.getRange(2,10,  rows, 1).setFormulas(jFormulas);
   sh.getRange(2,11,  rows, 1).setFormulas(kFormulas);
 
+  // タイムスタンプ列（B）を Date オブジェクトに変換＆整形
+  const tsRange = sh.getRange(2, 2, rows, 1);
+  const tsValues = tsRange.getValues();
+  const tsConverted = tsValues.map(row => {
+    const v = row[0];
+    if (v instanceof Date) return [v];
+    if (typeof v === 'string' && v) {
+      const d = new Date(v);
+      return isNaN(d.getTime()) ? [v] : [d];
+    }
+    return [v];
+  });
+  tsRange.setValues(tsConverted);
+  tsRange.setNumberFormat('yyyy-mm-dd HH:mm');
+
   // 列幅を調整
+  sh.setColumnWidth(2, 130); // timestamp
   sh.setColumnWidth(9,  110);
   sh.setColumnWidth(10, 130);
   sh.setColumnWidth(11, 160);
 
-  SpreadsheetApp.getUi().alert(`✅ scoresシートに見やすい列を追加しました（${rows}行に反映）`);
+  SpreadsheetApp.getUi().alert(`✅ scoresシートを見やすく整えました（${rows}行に反映：氏名・活動名・タイムスタンプ）`);
 }
 
 /**
