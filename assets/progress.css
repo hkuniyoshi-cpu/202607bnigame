@@ -106,11 +106,23 @@
 .rc-pts.p { color: #4ade80; } .rc-pts.n { color: #f87171; }
 .rc-note { font-size: 10px; color: rgba(255,255,255,.3); margin-top: 4px; }
 .rb-footer {
-  margin-top: 16px; font-size: 11px; color: rgba(255,255,255,.35);
-  border-top: 1px solid rgba(255,255,255,.05); padding-top: 12px;
-  line-height: 1.7;
+  margin-top: 20px;
+  padding: 18px 22px;
+  background: linear-gradient(135deg, rgba(181,0,0,.14), rgba(255,92,92,.06));
+  border: 1px solid rgba(181,0,0,.28);
+  border-radius: 12px;
+  font-size: 13px;
+  color: rgba(255,255,255,.85);
+  line-height: 2;
+  box-shadow: 0 4px 20px rgba(181,0,0,.15);
 }
-.rb-footer strong { color: rgba(255,255,255,.65); }
+.rb-footer strong {
+  color: #ffb0b0;
+  font-weight: 800;
+  letter-spacing: .5px;
+  display: inline-block;
+  min-width: 108px;
+}
 
 /* ── SCHEDULE ── */
 .schedule-card {
