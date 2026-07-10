@@ -88,18 +88,30 @@
     document.getElementById('submitBtn').disabled = false;
   }
 
+  const WEEK_DATES = ['7/13〜7/19', '7/20〜7/26', '7/27〜8/2', '8/3〜8/12'];
+
   function renderScoreCards() {
     const wrap = document.getElementById('scoreCards');
+    const cw = state.current_week || 0;
     let html = '';
     for (let w = 1; w <= 4; w++) {
       const bucket = state.weekly && state.weekly[w];
       const val = bucket ? bucket.teamAverage : 0;
       const count = bucket ? bucket.activeMemberCount : state.members.length;
-      const isCurrent = w === state.current_week;
       const sign = val > 0 ? 'positive' : val < 0 ? 'negative' : 'neutral';
+      let statusClass = 'future';
+      let statusLabel = '予定';
+      if (cw > 0) {
+        if (w < cw)      { statusClass = 'past';    statusLabel = '締切済'; }
+        else if (w === cw) { statusClass = 'current'; statusLabel = '📝 受付中'; }
+      } else if (cw === 0) {
+        statusClass = 'future';
+        statusLabel = '予定';
+      }
       html += `
-        <div class="score-card sc-card ${isCurrent ? 'current' : ''}">
-          <div class="sc-week">第${w}週</div>
+        <div class="score-card sc-card ${statusClass}">
+          <div class="sc-badge">${statusLabel}</div>
+          <div class="sc-week">第${w}週<span class="sc-dates">${WEEK_DATES[w-1]}</span></div>
           <div class="sc-value ${sign}">${val > 0 ? '+' : ''}${val.toFixed(1)}<small style="font-size:12px">pt</small></div>
           <div class="sc-members">${count}名参加</div>
         </div>

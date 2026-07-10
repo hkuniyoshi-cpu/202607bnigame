@@ -17,26 +17,79 @@
   margin-bottom: 24px;
 }
 
-/* ── 現在の暫定スコア ── */
+/* ── 現在の暫定スコア（週別カード） ── */
 .current-scores {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
   margin-bottom: 24px;
 }
 .score-card {
+  position: relative;
   background: rgba(255,255,255,.03);
   border: 1px solid rgba(255,255,255,.06);
-  border-radius: 10px;
-  padding: 14px 16px;
+  border-radius: 12px;
+  padding: 16px 18px 14px;
+  transition: transform .2s;
 }
-.sc-week { font-size: 10px; color: rgba(255,255,255,.4); letter-spacing: 2px; }
-.sc-value { font-size: 22px; font-weight: 900; margin-top: 4px; }
+.sc-badge {
+  position: absolute; top: 10px; right: 10px;
+  font-size: 10px; font-weight: 800; letter-spacing: 1px;
+  padding: 3px 8px; border-radius: 999px;
+  background: rgba(255,255,255,.06); color: rgba(255,255,255,.5);
+}
+.sc-week { font-size: 11px; color: rgba(255,255,255,.5); letter-spacing: 1.5px; font-weight: 700; }
+.sc-dates { font-size: 9px; color: rgba(255,255,255,.3); margin-left: 6px; font-weight: 400; letter-spacing: 0; }
+.sc-value { font-size: 24px; font-weight: 900; margin-top: 6px; }
 .sc-value.positive { color: #4ade80; }
 .sc-value.negative { color: #f87171; }
 .sc-value.neutral  { color: rgba(255,255,255,.6); }
-.sc-members { font-size: 10px; color: rgba(255,255,255,.3); margin-top: 4px; }
-.sc-card.current { border-color: rgba(181,0,0,.4); background: rgba(181,0,0,.05); }
+.sc-members { font-size: 10px; color: rgba(255,255,255,.35); margin-top: 4px; }
+
+/* 締切済（過去週）— 暗く抑える */
+.sc-card.past {
+  opacity: .45;
+  background: rgba(0,0,0,.35);
+  border-color: rgba(255,255,255,.04);
+}
+.sc-card.past .sc-badge {
+  background: rgba(120,120,140,.15);
+  color: rgba(255,255,255,.4);
+}
+
+/* 予定（未来週）— やや控えめ */
+.sc-card.future {
+  border-style: dashed;
+  border-color: rgba(255,255,255,.08);
+}
+.sc-card.future .sc-value { color: rgba(255,255,255,.25); }
+.sc-card.future .sc-badge {
+  background: rgba(74,158,255,.12);
+  color: #6ba9ff;
+}
+
+/* 受付中（現在週）— 色反転で強調 */
+.sc-card.current {
+  background: linear-gradient(135deg, #b50000 0%, #7a0000 100%);
+  border: 2px solid #ff5c5c;
+  box-shadow: 0 0 0 3px rgba(181,0,0,.15), 0 10px 32px rgba(181,0,0,.4);
+  transform: translateY(-2px);
+  animation: currentPulse 2.2s ease-in-out infinite;
+}
+.sc-card.current .sc-week { color: rgba(255,255,255,.85); }
+.sc-card.current .sc-dates { color: rgba(255,255,255,.6); }
+.sc-card.current .sc-value { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.sc-card.current .sc-value.positive { color: #b3ffb3; }
+.sc-card.current .sc-value.negative { color: #ffb3b3; }
+.sc-card.current .sc-members { color: rgba(255,255,255,.75); }
+.sc-card.current .sc-badge {
+  background: #fff; color: #b50000; font-weight: 900;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+}
+@keyframes currentPulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(181,0,0,.15), 0 10px 32px rgba(181,0,0,.4); }
+  50%      { box-shadow: 0 0 0 6px rgba(181,0,0,.25), 0 12px 40px rgba(181,0,0,.55); }
+}
 
 /* ── 入力フォーム ── */
 .form-title {
