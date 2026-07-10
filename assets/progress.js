@@ -27,9 +27,18 @@
       if (!data.ok) throw new Error(data.error || 'API error');
       cachedData = data;
       render();
+      hideLoading();
     } catch (e) {
       showError('データ取得に失敗しました: ' + e.message);
+      hideLoading();
     }
+  }
+
+  function hideLoading() {
+    const el = document.getElementById('loadingOverlay');
+    if (!el) return;
+    el.classList.add('hidden');
+    setTimeout(() => { el.style.display = 'none'; }, 600);
   }
 
   function showError(msg) {
