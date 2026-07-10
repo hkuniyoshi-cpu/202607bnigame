@@ -13,7 +13,7 @@ const WEEK_ENDS = [
 const ACTIVITIES = {
   key_skills:      { label: 'キースキルズトレーニング',                    points:  1, sign: '+' },
   mindset:         { label: 'マインドセットトレーニング',                  points:  1, sign: '+' },
-  training_other:  { label: 'その他BNIトレーニング（ネットワーキング/ディベロップ等）', points:  1, sign: '+' },
+  training_other:  { label: 'ネットワーキング/ディベロップ', points:  1, sign: '+' },
   ms_addon:        { label: 'MSアドオン受講',                              points:  2, sign: '+' },
   pt_ws_first:     { label: 'パワーチームWS 前半（ターゲットマーケット）',  points:  5, sign: '+' },
   pt_ws_second:    { label: 'パワーチームWS 後半（パワーチーム構築）',      points: 10, sign: '+' },

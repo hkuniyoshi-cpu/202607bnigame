@@ -221,7 +221,7 @@ const ADMIN_SHEET_NAME = '管理者入力';
 const ADMIN_ACTIVITY_MAP = {
   'キースキルズトレーニング':  'key_skills',
   'マインドセットトレーニング': 'mindset',
-  'その他BNIトレーニング':     'training_other',
+  'ネットワーキング/ディベロップ': 'training_other',
   'MSアドオン受講':           'ms_addon',
   'パワーチームWS 前半':      'pt_ws_first',
   'パワーチームWS 後半':      'pt_ws_second',
@@ -234,7 +234,7 @@ const ADMIN_ACTIVITY_MAP = {
 const ADMIN_REFERENCE_ROWS = [
   ['キースキルズトレーニング',  '+1P'],
   ['マインドセットトレーニング', '+1P'],
-  ['その他BNIトレーニング',    '+1P（ネットワーキング／ディベロップ 等）'],
+  ['ネットワーキング/ディベロップ', '+1P'],
   ['MSアドオン受講',          '+2P'],
   ['パワーチームWS 前半',     '+5P（ターゲットマーケット）'],
   ['パワーチームWS 後半',     '+10P（パワーチーム構築）'],
