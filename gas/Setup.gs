@@ -380,6 +380,26 @@ function _syncSingleAdminRow(admin, rowIndex, rowData, lookup) {
 }
 
 /**
+ * メンバー名を選んだ時、所属チームを B列に自動反映する。
+ * すでに正しいチームが入っていれば何もしない（無限ループ回避）。
+ * ついでにメンバードロップダウンをそのチーム内メンバーだけに絞り込む。
+ */
+function _autoFillTeamFromMember(sh, row, memberName) {
+  if (!memberName) return;
+  const member = readMembers().find(m => String(m.name) === String(memberName));
+  if (!member) return;
+  const team = readTeams().find(t => String(t.team_id) === String(member.team_id));
+  if (!team) return;
+
+  const teamCell = sh.getRange(row, 2);
+  if (String(teamCell.getValue()) !== String(team.name)) {
+    teamCell.setValue(team.name);
+  }
+  // メンバー列の validation もそのチーム用に絞り込む（次回選ぶ時のため）
+  _updateMemberValidationForRow(sh, row, team.name);
+}
+
+/**
  * 該当行のメンバー列(C)のドロップダウンを、選択中チームのメンバーだけに絞り込む。
  * チーム名が未選択・不正の場合は全メンバーに戻す。
  * 現在の値が新リストに含まれなければ自動でクリアする。
@@ -556,6 +576,11 @@ function onEdit(e) {
     // チーム列（B=2）の変更 → メンバー列(C)のドロップダウンを絞り込む
     if (col === 2) {
       _updateMemberValidationForRow(sh, row, e.range.getValue());
+    }
+
+    // メンバー列（C=3）の変更 → 所属チームを B列に自動反映
+    if (col === 3) {
+      _autoFillTeamFromMember(sh, row, e.range.getValue());
     }
 
     if (col >= 6) return;                    // ✓/時刻列の編集は無視
