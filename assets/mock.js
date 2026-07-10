@@ -147,11 +147,14 @@
     if (body.token !== MOCK_TOKEN) return { ok: false, error: 'invalid_token' };
     const activity = ACTIVITIES[body.activity];
     if (!activity) return { ok: false, error: 'invalid_activity' };
-    // MSアドオン特別処理: 期間チェックなし、1メンバー1回限り
-    if (body.activity === 'ms_addon') {
-      const arr = mockScoresStore.t01 || [];
-      const already = arr.some(s => s.member_id === body.member_id && s.activity === 'ms_addon');
-      if (already) return { ok: false, error: 'ms_addon_already_recorded' };
+    // 期間チェックをスキップする活動
+    const ANYTIME_ACTS = ['ms_addon', 'one_to_one'];
+    if (ANYTIME_ACTS.indexOf(body.activity) >= 0) {
+      if (body.activity === 'ms_addon') {
+        const arr = mockScoresStore.t01 || [];
+        const already = arr.some(s => s.member_id === body.member_id && s.activity === 'ms_addon');
+        if (already) return { ok: false, error: 'ms_addon_already_recorded' };
+      }
     } else {
       // 対象週チェック（過去週→期限切れ／未来週→未開放）
       const target = Number(body.target_week) || mockCurrentWeek;

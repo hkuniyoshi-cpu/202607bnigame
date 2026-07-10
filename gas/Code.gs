@@ -160,13 +160,19 @@ function submitScore_(body) {
   const count = Math.max(1, Math.min(Number(body.count) || 1, 20));
   const now = new Date();
 
+  // 期間チェックをスキップする活動（MSアドオン=1回限り、1to1=上限なし）
+  const ANYTIME_ACTIVITIES = ['ms_addon', 'one_to_one'];
+  const isAnytime = ANYTIME_ACTIVITIES.indexOf(activity) >= 0;
+
   let week;
-  if (activity === 'ms_addon') {
-    // MSアドオン: オンライン受講のため期間チェックなし、ただし1メンバー1回限り
-    const already = readScores().some(s =>
-      String(s.member_id) === member_id && String(s.activity) === 'ms_addon'
-    );
-    if (already) return { ok: false, error: 'ms_addon_already_recorded' };
+  if (isAnytime) {
+    if (activity === 'ms_addon') {
+      // MSアドオンは1メンバー1回限り
+      const already = readScores().some(s =>
+        String(s.member_id) === member_id && String(s.activity) === 'ms_addon'
+      );
+      if (already) return { ok: false, error: 'ms_addon_already_recorded' };
+    }
     // 週は現在の週、期間外なら第1週（開始前）／第4週（終了後）へ寄せる
     const w = _weekOf(now);
     week = w > 0 ? w : (now < new Date(CONFIG.GAME_START) ? 1 : 4);

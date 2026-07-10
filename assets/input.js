@@ -131,6 +131,9 @@
   // 管理者側で集計する項目はチームリーダーの入力プルダウンから除外
   const LEADER_INPUT_EXCLUDED = ['absent', 'late', 'testimonial', 'visitor'];
 
+  // 期間チェックをスキップする「いつでもOK」の活動
+  const ANYTIME_ACTIVITIES = ['ms_addon', 'one_to_one'];
+
   function renderActivityGrid() {
     const grid = document.getElementById('activityGrid');
     if (!grid) return;
@@ -145,9 +148,10 @@
       const points = (a.sign === '-' ? -a.points : a.points);
       const sign = points >= 0 ? '+' : '';
       const cls = points >= 0 ? 'positive' : 'negative';
+      const isAnytime = ANYTIME_ACTIVITIES.indexOf(key) >= 0;
       const isMsAddon = key === 'ms_addon';
 
-      // MSアドオンは期間外でもタップ可、ただし1メンバー1回のみ
+      // MSアドオンだけ「1メンバー1回」制約あり
       const msAddonRecorded = isMsAddon && !noMember && state.scores.some(s =>
         String(s.member_id) === String(memberId) && s.activity === 'ms_addon'
       );
@@ -160,16 +164,21 @@
       } else if (isMsAddon && msAddonRecorded) {
         tileDisabled = true;
         disabledReason = '🔒 入力済み';
-      } else if (!isMsAddon && outOfPeriod) {
+      } else if (!isAnytime && outOfPeriod) {
         tileDisabled = true;
         disabledReason = '⛔ ゲーム期間外';
       }
 
-      // 今週の記録件数（MSアドオンは今週限定でなく全期間で1回）
+      // 記録件数（MSアドオンは全期間で1回、1to1は全期間累計、その他は今週分）
       let weekCount = 0;
       if (!noMember) {
         if (isMsAddon) {
           weekCount = msAddonRecorded ? 1 : 0;
+        } else if (isAnytime) {
+          // 1to1は全期間累計
+          weekCount = state.scores.filter(s =>
+            String(s.member_id) === String(memberId) && s.activity === key
+          ).reduce((acc, s) => acc + Number(s.count || 0), 0);
         } else if (!outOfPeriod) {
           weekCount = state.scores.filter(s =>
             String(s.member_id) === String(memberId) &&
@@ -179,21 +188,24 @@
         }
       }
 
-      const countBadgeLabel = isMsAddon
-        ? (msAddonRecorded ? '受講済み' : null)
-        : (weekCount > 0 ? `今週 ${weekCount}件` : null);
+      let countBadgeLabel = null;
+      if (isMsAddon && msAddonRecorded) countBadgeLabel = '受講済み';
+      else if (isAnytime && weekCount > 0) countBadgeLabel = `累計 ${weekCount}件`;
+      else if (!isAnytime && weekCount > 0) countBadgeLabel = `今週 ${weekCount}件`;
 
-      const ctaText = tileDisabled
-        ? disabledReason
-        : (isMsAddon ? '＋ 受講記録する' : '＋ タップで加算');
+      let ctaText;
+      if (tileDisabled) ctaText = disabledReason;
+      else if (isMsAddon) ctaText = '＋ 受講記録する';
+      else if (isAnytime) ctaText = '＋ 1件追加';
+      else ctaText = '＋ タップで加算';
 
       return `
-        <button class="activity-tile ${cls}${weekCount > 0 ? ' has-count' : ''}${tileDisabled ? ' locked' : ''}${isMsAddon ? ' anytime' : ''}"
+        <button class="activity-tile ${cls}${weekCount > 0 ? ' has-count' : ''}${tileDisabled ? ' locked' : ''}${isAnytime ? ' anytime' : ''}"
                 data-activity="${key}"
                 onclick="tapActivity('${key}')"
                 ${tileDisabled ? 'disabled' : ''}>
           ${countBadgeLabel ? `<div class="tile-count-badge">${countBadgeLabel}</div>` : ''}
-          <div class="tile-name">${a.label}${isMsAddon ? '<span class="tile-badge-inline">いつでもOK</span>' : ''}</div>
+          <div class="tile-name">${a.label}${isAnytime ? '<span class="tile-badge-inline">いつでもOK</span>' : ''}</div>
           <div class="tile-points">${sign}${points}<small>P</small></div>
           <div class="tile-cta">${ctaText}</div>
         </button>
@@ -253,8 +265,9 @@
     if (tapInFlight) return;
     const memberId = document.getElementById('memberSelect').value;
     if (!memberId) { toast('メンバーを選択してください', 'error'); return; }
-    // MSアドオン以外は期間チェック（MSアドオンはいつでもOK）
-    if (activity !== 'ms_addon' && (!state.current_week || state.current_week < 1)) {
+    // ANYTIME_ACTIVITIES 以外は期間チェック（MSアドオン・1to1はいつでもOK）
+    if (ANYTIME_ACTIVITIES.indexOf(activity) < 0 &&
+        (!state.current_week || state.current_week < 1)) {
       toast('現在は入力できません', 'error'); return;
     }
     const a = state.activities[activity];
