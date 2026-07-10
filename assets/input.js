@@ -52,11 +52,40 @@
     document.getElementById('teamSub').textContent =
       `${state.members.length}名｜チームリーダー入力画面｜現在: 第${state.current_week || '?'}週`;
 
+    renderWeekBanner();
     renderScoreCards();
     renderMemberOptions();
     renderActivityOptions();
     renderHistory();
     updatePreview();
+  }
+
+  // 週の期限表示（何週目か・締切日）
+  const WEEK_ENDS_DISPLAY = ['7/19（日）', '7/26（日）', '8/2（日）', '8/12（水）'];
+
+  function renderWeekBanner() {
+    const el = document.getElementById('weekBanner');
+    if (!el) return;
+    const cw = state.current_week;
+    if (!cw || cw < 1 || cw > 4) {
+      el.className = 'week-banner closed';
+      el.innerHTML = `
+        <div class="wb-icon">⛔</div>
+        <div class="wb-body">
+          <div class="wb-title">ゲーム期間外です</div>
+          <div class="wb-sub">現在は入力できません（期間: 7/13〜8/12）</div>
+        </div>`;
+      document.getElementById('submitBtn').disabled = true;
+      return;
+    }
+    el.className = 'week-banner open';
+    el.innerHTML = `
+      <div class="wb-icon">📝</div>
+      <div class="wb-body">
+        <div class="wb-title">現在受付中：第${cw}週</div>
+        <div class="wb-sub">この入力は<strong style="color:#fff">第${cw}週の記録</strong>として保存されます｜締切: ${WEEK_ENDS_DISPLAY[cw-1]} 23:59</div>
+      </div>`;
+    document.getElementById('submitBtn').disabled = false;
   }
 
   function renderScoreCards() {
@@ -103,11 +132,15 @@
   }
 
   function renderHistory() {
-    // 週タブ
+    // 週タブ（過去週には「締」マーカー、現在週は緑枠）
+    const cw = state.current_week || 0;
     const tabs = document.getElementById('weekTabs');
-    tabs.innerHTML = [1,2,3,4].map(w =>
-      `<button class="wtab ${w === currentTab ? 'active' : ''}" onclick="switchWeekTab(${w})">第${w}週</button>`
-    ).join('');
+    tabs.innerHTML = [1,2,3,4].map(w => {
+      const past = cw > 0 && w < cw;
+      const isCurrent = w === cw;
+      const cls = `wtab ${w === currentTab ? 'active' : ''} ${past ? 'past' : ''} ${isCurrent ? 'current' : ''}`;
+      return `<button class="${cls}" onclick="switchWeekTab(${w})">第${w}週</button>`;
+    }).join('');
 
     const list = document.getElementById('historyList');
     const filtered = state.scores.filter(s => s.week === currentTab);
@@ -169,8 +202,8 @@
     btn.textContent = '送信中...';
 
     try {
-      const res = await BNI_API.submit({ token: TOKEN, member_id, activity, count });
-      if (!res.ok) throw new Error(res.error || 'submit failed');
+      const res = await BNI_API.submit({ token: TOKEN, member_id, activity, count, target_week: state.current_week });
+      if (!res.ok) throw new Error(translateError(res.error));
       toast('✓ 記録しました', 'success');
       // フォームリセット
       document.getElementById('memberSelect').value = '';
@@ -196,6 +229,20 @@
       await load();
     } catch (e) {
       toast('削除失敗: ' + e.message, 'error');
+    }
+  }
+
+  // ── エラーメッセージ日本語化 ─────────
+  function translateError(code) {
+    switch (code) {
+      case 'week_closed':        return '入力期限が過ぎています';
+      case 'week_not_open_yet':  return 'まだ入力できません（次週の開始をお待ちください）';
+      case 'out_of_game_period': return 'ゲーム期間外です（7/13〜8/12）';
+      case 'invalid_week':       return '対象週が不正です';
+      case 'invalid_token':      return 'トークンが無効です';
+      case 'invalid_activity':   return '活動区分が不正です';
+      case 'invalid_member':     return 'メンバーが不正です';
+      default:                   return code || '送信に失敗しました';
     }
   }
 

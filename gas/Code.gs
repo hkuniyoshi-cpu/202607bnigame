@@ -159,8 +159,12 @@ function submitScore_(body) {
 
   const count = Math.max(1, Math.min(Number(body.count) || 1, 20));
   const now = new Date();
-  const week = _weekOf(now);
-  if (week === 0) return { ok: false, error: 'out_of_game_period' };
+
+  // 対象週の入力可否チェック（過去週=期限切れ／未来週=まだ入力不可）
+  const target = Number(body.target_week) || _weekOf(now);
+  const gate = _validateInputWeek(now, target);
+  if (!gate.ok) return { ok: false, error: gate.error, current: gate.current };
+  const week = gate.week;
 
   const points = _computePoints(activity, count);
   const entry = {

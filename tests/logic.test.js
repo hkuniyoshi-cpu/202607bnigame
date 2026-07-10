@@ -23,6 +23,34 @@ test('weekOf: 期間外は 0', () => {
   assert.equal(L.weekOf('2026-08-13T00:00:00+09:00'), 0);
 });
 
+// ── validateInputWeek ──────────────────────────────────
+test('validateInputWeek: 現在週の入力はOK', () => {
+  const now = new Date('2026-07-22T10:00:00+09:00'); // 第2週
+  assert.deepEqual(L.validateInputWeek(now, 2), { ok: true, week: 2 });
+});
+test('validateInputWeek: 過去週は week_closed', () => {
+  const now = new Date('2026-07-22T10:00:00+09:00'); // 第2週
+  const r = L.validateInputWeek(now, 1);
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'week_closed');
+  assert.equal(r.current, 2);
+});
+test('validateInputWeek: 未来週は week_not_open_yet', () => {
+  const now = new Date('2026-07-22T10:00:00+09:00'); // 第2週
+  const r = L.validateInputWeek(now, 3);
+  assert.equal(r.ok, false);
+  assert.equal(r.error, 'week_not_open_yet');
+});
+test('validateInputWeek: ゲーム期間外は out_of_game_period', () => {
+  assert.equal(L.validateInputWeek(new Date('2026-07-10'), 1).error, 'out_of_game_period');
+  assert.equal(L.validateInputWeek(new Date('2026-08-13'), 4).error, 'out_of_game_period');
+});
+test('validateInputWeek: 無効な週番号は invalid_week', () => {
+  const now = new Date('2026-07-22T10:00:00+09:00');
+  assert.equal(L.validateInputWeek(now, 0).error, 'invalid_week');
+  assert.equal(L.validateInputWeek(now, 5).error, 'invalid_week');
+});
+
 // ── computePoints ──────────────────────────────────────
 test('computePoints: プラス種別', () => {
   assert.equal(L.computePoints('visitor', 2), 6);       // +3 × 2

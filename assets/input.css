@@ -107,6 +107,38 @@
   padding: 40px 20px; font-size: 13px;
 }
 
+/* ── 週バナー ── */
+.week-banner {
+  padding: 14px 18px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+  display: flex; align-items: center; gap: 12px;
+}
+.week-banner.open {
+  background: linear-gradient(135deg, rgba(74,222,128,.1), rgba(74,222,128,.03));
+  border: 1px solid rgba(74,222,128,.35);
+  color: #dcfce7;
+}
+.week-banner.closed {
+  background: linear-gradient(135deg, rgba(248,113,113,.1), rgba(248,113,113,.03));
+  border: 1px solid rgba(248,113,113,.35);
+  color: #fecaca;
+}
+.week-banner .wb-icon { font-size: 20px; flex-shrink: 0; }
+.week-banner .wb-title { font-weight: 800; font-size: 14px; }
+.week-banner .wb-sub  { font-size: 11px; color: rgba(255,255,255,.55); margin-top: 2px; }
+.week-banner .wb-body { flex: 1; }
+
+/* 履歴タブの過去週マーカー */
+.wtab.past { position: relative; opacity: .6; }
+.wtab.past::after {
+  content: '締'; font-size: 9px; margin-left: 4px; opacity: .8;
+}
+.wtab.current { border: 1px solid rgba(74,222,128,.4); }
+
 /* ── invalid token ── */
 .invalid-token {
   max-width: 480px; margin: 80px auto; padding: 40px 30px;

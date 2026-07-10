@@ -11,6 +11,16 @@ function _weekOf(dateLike) {
   return 0;
 }
 
+function _validateInputWeek(now, targetWeek) {
+  const current = _weekOf(now);
+  if (current === 0) return { ok: false, error: 'out_of_game_period' };
+  const t = Number(targetWeek);
+  if (!(t >= 1 && t <= 4)) return { ok: false, error: 'invalid_week' };
+  if (t < current) return { ok: false, error: 'week_closed', current: current };
+  if (t > current) return { ok: false, error: 'week_not_open_yet', current: current };
+  return { ok: true, week: current };
+}
+
 function _computePoints(activity, count) {
   const def = CONFIG.ACTIVITIES[activity];
   if (!def) return 0;

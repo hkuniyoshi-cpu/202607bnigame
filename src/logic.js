@@ -35,6 +35,23 @@ function weekOf(dateLike) {
   return 0;
 }
 
+/**
+ * 対象週の入力可否を判定する。
+ * ・過去週 → week_closed（入力期限が過ぎています）
+ * ・未来週 → week_not_open_yet
+ * ・現在の週 → ok
+ * ・期間外 → out_of_game_period
+ */
+function validateInputWeek(now, targetWeek) {
+  const current = weekOf(now);
+  if (current === 0) return { ok: false, error: 'out_of_game_period' };
+  const t = Number(targetWeek);
+  if (!(t >= 1 && t <= 4)) return { ok: false, error: 'invalid_week' };
+  if (t < current) return { ok: false, error: 'week_closed', current: current };
+  if (t > current) return { ok: false, error: 'week_not_open_yet', current: current };
+  return { ok: true, week: current };
+}
+
 /** 1件のスコア記録 → 実際の獲得点（活動種別×件数、符号込み） */
 function computePoints(activity, count) {
   const def = ACTIVITIES[activity];
@@ -188,6 +205,7 @@ const API = {
   WEEK_ENDS,
   ACTIVITIES,
   weekOf,
+  validateInputWeek,
   computePoints,
   aggregateWeekly,
   cumulativeAverages,
