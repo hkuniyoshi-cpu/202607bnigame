@@ -307,14 +307,51 @@ function setupAdminSheet() {
   );
 }
 
-function syncAdminEntries() {
-  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-  const admin = ss.getSheetByName(ADMIN_SHEET_NAME);
-  if (!admin) {
-    SpreadsheetApp.getUi().alert('管理者入力シートが見つかりません。先に setupAdminSheet() を実行してください。');
-    return;
+/**
+ * 単一行を scores シートに反映する内部関数。
+ * 呼び元: syncAdminEntries（一括） / onEdit（自動）
+ * 戻り値: { ok, error }
+ */
+function _syncSingleAdminRow(admin, rowIndex, rowData, lookup) {
+  const [week, teamName, memberName, activityLabel, count, done] = rowData;
+  if (done) return { ok: false, skip: true };
+  if (!week || !teamName || !memberName || !activityLabel || !count) return { ok: false, skip: true };
+
+  const activity = ADMIN_ACTIVITY_MAP[activityLabel];
+  if (!activity) return { ok: false, error: `活動が不正 (${activityLabel})` };
+
+  const teamId = lookup.teamByName[String(teamName)];
+  if (!teamId) return { ok: false, error: `チーム名が不正 (${teamName})` };
+
+  const mInfo = lookup.memberByName[String(memberName)];
+  if (!mInfo) return { ok: false, error: `メンバー名が不正 (${memberName})` };
+  if (mInfo.team_id !== teamId) {
+    return { ok: false, error: `メンバー「${memberName}」は「${teamName}」に所属していません` };
   }
 
+  const w = Number(week);
+  if (!(w >= 1 && w <= 4)) return { ok: false, error: `週が不正 (${week})` };
+
+  const c = Math.max(1, Number(count) || 1);
+  const points = _computePoints(activity, c);
+
+  appendScore({
+    id: _uuid(),
+    timestamp: new Date().toISOString(),
+    team_id: teamId,
+    member_id: mInfo.id,
+    activity: activity,
+    count: c,
+    points: points,
+    week: w,
+  });
+
+  admin.getRange(rowIndex, 6).setValue('✓').setFontColor('#0a7f2a').setFontWeight('bold').setHorizontalAlignment('center');
+  admin.getRange(rowIndex, 7).setValue(new Date()).setNumberFormat('yyyy-MM-dd HH:mm');
+  return { ok: true };
+}
+
+function _buildAdminLookup() {
   const teams = readTeams();
   const members = readMembers();
   const teamByName = {};
@@ -323,9 +360,29 @@ function syncAdminEntries() {
   members.forEach(m => {
     memberByName[String(m.name)] = { id: String(m.member_id), team_id: String(m.team_id) };
   });
+  return { teamByName, memberByName };
+}
 
+/**
+ * 手動一括反映：管理者入力シートの未反映行を全件処理する。
+ * 単発の onEdit で拾えなかった行や、CSV貼り付け後に使う。
+ */
+function syncAdminEntries() {
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const admin = ss.getSheetByName(ADMIN_SHEET_NAME);
+  if (!admin) {
+    SpreadsheetApp.getUi().alert('管理者入力シートが見つかりません。先に setupAdminSheet() を実行してください。');
+    return;
+  }
+
+  const lookup = _buildAdminLookup();
   const HEADER_ROW = 5;
-  const data = admin.getRange(HEADER_ROW + 1, 1, admin.getLastRow() - HEADER_ROW, 7).getValues();
+  const lastRow = admin.getLastRow();
+  if (lastRow <= HEADER_ROW) {
+    SpreadsheetApp.getUi().alert('入力データがありません');
+    return;
+  }
+  const data = admin.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, 7).getValues();
 
   let successCount = 0;
   const errors = [];
@@ -334,52 +391,40 @@ function syncAdminEntries() {
   lock.waitLock(10000);
   try {
     data.forEach((row, i) => {
-      const [week, teamName, memberName, activityLabel, count, done] = row;
-      if (done) return; // 反映済みスキップ
-      if (!week || !teamName || !memberName || !activityLabel || !count) return; // 空行スキップ
-
       const rowIndex = HEADER_ROW + 1 + i;
-      const activity = ADMIN_ACTIVITY_MAP[activityLabel];
-      if (!activity) { errors.push(`行${rowIndex}: 活動が不正 (${activityLabel})`); return; }
-
-      const teamId = teamByName[String(teamName)];
-      if (!teamId) { errors.push(`行${rowIndex}: チーム名が不正 (${teamName})`); return; }
-
-      const mInfo = memberByName[String(memberName)];
-      if (!mInfo) { errors.push(`行${rowIndex}: メンバー名が不正 (${memberName})`); return; }
-      if (mInfo.team_id !== teamId) {
-        errors.push(`行${rowIndex}: メンバー「${memberName}」は「${teamName}」に所属していません`);
-        return;
-      }
-
-      const w = Number(week);
-      if (!(w >= 1 && w <= 4)) { errors.push(`行${rowIndex}: 週が不正 (${week})`); return; }
-
-      const c = Math.max(1, Number(count) || 1);
-      const points = _computePoints(activity, c);
-
-      appendScore({
-        id: _uuid(),
-        timestamp: new Date().toISOString(),
-        team_id: teamId,
-        member_id: mInfo.id,
-        activity: activity,
-        count: c,
-        points: points,
-        week: w,
-      });
-
-      admin.getRange(rowIndex, 6).setValue('✓').setFontColor('#0a7f2a').setFontWeight('bold').setHorizontalAlignment('center');
-      admin.getRange(rowIndex, 7).setValue(new Date()).setNumberFormat('yyyy-MM-dd HH:mm');
-      successCount++;
+      const res = _syncSingleAdminRow(admin, rowIndex, row, lookup);
+      if (res.ok) successCount++;
+      else if (res.error) errors.push(`行${rowIndex}: ${res.error}`);
     });
   } finally {
     lock.releaseLock();
   }
 
   let msg = `✅ ${successCount}件をscoresシートに反映しました`;
-  if (errors.length) {
-    msg += '\n\n⚠ エラー:\n' + errors.join('\n');
-  }
+  if (errors.length) msg += '\n\n⚠ エラー:\n' + errors.join('\n');
   SpreadsheetApp.getUi().alert(msg);
+}
+
+/**
+ * 【自動トリガー】管理者入力シートの編集で自動反映。
+ * 簡易トリガー（インストール不要）— 関数名 onEdit は GAS 側が自動検知。
+ * 全項目が埋まった時点で該当行だけを反映＆✓マーク。
+ */
+function onEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    const sh = e.range.getSheet();
+    if (sh.getName() !== ADMIN_SHEET_NAME) return;
+
+    const row = e.range.getRow();
+    if (row <= 5) return; // ヘッダー以上はスキップ
+    if (e.range.getColumn() >= 6) return; // 反映済み・反映時刻列の編集は無視
+
+    const rowData = sh.getRange(row, 1, 1, 7).getValues()[0];
+    const lookup = _buildAdminLookup();
+    _syncSingleAdminRow(sh, row, rowData, lookup);
+  } catch (err) {
+    // 簡易トリガー内では throw しない
+    console.error('onEdit error:', err);
+  }
 }
