@@ -307,15 +307,22 @@ function setupAdminSheet() {
   );
 }
 
+/** 5項目（週・チーム・メンバー・活動・件数）すべて埋まっているか？ */
+function _isAdminRowIncomplete(rowData) {
+  const [week, teamName, memberName, activityLabel, count] = rowData;
+  return !week || !teamName || !memberName || !activityLabel || !count;
+}
+
 /**
  * 単一行を scores シートに反映する内部関数。
  * 呼び元: syncAdminEntries（一括） / onEdit（自動）
  * 戻り値: { ok, error }
+ * ノート機能で score_id を反映済みセル（F列）に保存 → 訂正時に元スコアを削除可能
  */
 function _syncSingleAdminRow(admin, rowIndex, rowData, lookup) {
+  if (_isAdminRowIncomplete(rowData)) return { ok: false, skip: true };
   const [week, teamName, memberName, activityLabel, count, done] = rowData;
   if (done) return { ok: false, skip: true };
-  if (!week || !teamName || !memberName || !activityLabel || !count) return { ok: false, skip: true };
 
   const activity = ADMIN_ACTIVITY_MAP[activityLabel];
   if (!activity) return { ok: false, error: `活動が不正 (${activityLabel})` };
@@ -334,9 +341,10 @@ function _syncSingleAdminRow(admin, rowIndex, rowData, lookup) {
 
   const c = Math.max(1, Number(count) || 1);
   const points = _computePoints(activity, c);
+  const id = _uuid();
 
   appendScore({
-    id: _uuid(),
+    id: id,
     timestamp: new Date().toISOString(),
     team_id: teamId,
     member_id: mInfo.id,
@@ -346,9 +354,24 @@ function _syncSingleAdminRow(admin, rowIndex, rowData, lookup) {
     week: w,
   });
 
-  admin.getRange(rowIndex, 6).setValue('✓').setFontColor('#0a7f2a').setFontWeight('bold').setHorizontalAlignment('center');
+  admin.getRange(rowIndex, 6).setValue('✓')
+    .setNote(id) // score_id をノートに保存（訂正・削除時に参照）
+    .setFontColor('#0a7f2a').setFontWeight('bold').setHorizontalAlignment('center');
   admin.getRange(rowIndex, 7).setValue(new Date()).setNumberFormat('yyyy-MM-dd HH:mm');
   return { ok: true };
+}
+
+/** 反映済み行の scores を削除して ✓/時刻/ノートをクリアする */
+function _revertAdminRow(admin, rowIndex, scoreId) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    if (scoreId) deleteScoreByIdAny(scoreId);
+  } finally {
+    lock.releaseLock();
+  }
+  admin.getRange(rowIndex, 6).clearContent().clearNote();
+  admin.getRange(rowIndex, 7).clearContent();
 }
 
 function _buildAdminLookup() {
@@ -437,14 +460,30 @@ function onEdit(e) {
     if (sh.getName() !== ADMIN_SHEET_NAME) return;
 
     const row = e.range.getRow();
-    if (row <= 5) return; // ヘッダー以上はスキップ
-    if (e.range.getColumn() >= 6) return; // 反映済み・反映時刻列の編集は無視
+    if (row <= 5) return;                    // ヘッダー行はスキップ
+    if (e.range.getColumn() >= 6) return;    // ✓/時刻列の編集は無視
 
     const rowData = sh.getRange(row, 1, 1, 7).getValues()[0];
-    const lookup = _buildAdminLookup();
-    _syncSingleAdminRow(sh, row, rowData, lookup);
+    const storedId = sh.getRange(row, 6).getNote(); // 反映時に保存したscore_id
+    const incomplete = _isAdminRowIncomplete(rowData);
+
+    // ケース1: 反映済みの行に編集が入った → 一旦 scores を消してリセット
+    if (storedId) {
+      _revertAdminRow(sh, row, storedId);
+      // まだ5項目そろっているなら新IDで再反映
+      if (!incomplete) {
+        const lookup = _buildAdminLookup();
+        _syncSingleAdminRow(sh, row, rowData, lookup);
+      }
+      return;
+    }
+
+    // ケース2: 未反映の空行 → 5項目そろったら自動反映
+    if (!incomplete) {
+      const lookup = _buildAdminLookup();
+      _syncSingleAdminRow(sh, row, rowData, lookup);
+    }
   } catch (err) {
-    // 簡易トリガー内では throw しない
     console.error('onEdit error:', err);
   }
 }

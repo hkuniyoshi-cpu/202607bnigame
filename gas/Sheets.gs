@@ -76,6 +76,19 @@ function deleteScoreById(scoreId, teamId) {
   return false;
 }
 
+// 管理者用: team_id 検証なしで id 一致行を削除
+function deleteScoreByIdAny(scoreId) {
+  const sh = _sheet(CONFIG.SHEETS.SCORES);
+  const values = sh.getDataRange().getValues();
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(scoreId)) {
+      sh.deleteRow(i + 1);
+      return true;
+    }
+  }
+  return false;
+}
+
 // ── UUID (簡易) ─────────────────────────────────────
 function _uuid() {
   return Utilities.getUuid();
