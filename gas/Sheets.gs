@@ -48,6 +48,22 @@ function readScores() {
 }
 
 // ── 書き込み ────────────────────────────────────────
+// 活動キー → 表示名（scoresシートの見やすさ用）
+const _ACTIVITY_LABEL_FORMULA =
+  '=IF(E{ROW}="","",IFS(' +
+  'E{ROW}="key_skills","キースキルズ",' +
+  'E{ROW}="mindset","マインドセット",' +
+  'E{ROW}="training_other","ネットワーキング/ディベロップ",' +
+  'E{ROW}="ms_addon","MSアドオン受講",' +
+  'E{ROW}="pt_ws_first","パワーチームWS 前半",' +
+  'E{ROW}="pt_ws_second","パワーチームWS 後半",' +
+  'E{ROW}="one_to_one","1to1",' +
+  'E{ROW}="visitor","ビジター招待",' +
+  'E{ROW}="testimonial","推薦の言葉",' +
+  'E{ROW}="absent","欠席",' +
+  'E{ROW}="late","遅刻・早退",' +
+  'TRUE,E{ROW}))';
+
 function appendScore(entry) {
   const sh = _sheet(CONFIG.SHEETS.SCORES);
   sh.appendRow([
@@ -60,6 +76,11 @@ function appendScore(entry) {
     entry.points,
     entry.week,
   ]);
+  const row = sh.getLastRow();
+  // 見やすい列（I: チーム名, J: メンバー名, K: 活動名）を VLOOKUP で埋める
+  sh.getRange(row, 9).setFormula(`=IFERROR(VLOOKUP(C${row},teams!A:B,2,FALSE),"")`);
+  sh.getRange(row, 10).setFormula(`=IFERROR(VLOOKUP(D${row},members!A:B,2,FALSE),"")`);
+  sh.getRange(row, 11).setFormula(_ACTIVITY_LABEL_FORMULA.replace(/\{ROW\}/g, row));
 }
 
 function deleteScoreById(scoreId, teamId) {

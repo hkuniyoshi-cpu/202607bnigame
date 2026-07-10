@@ -122,10 +122,16 @@
 
   function renderMemberOptions() {
     const sel = document.getElementById('memberSelect');
+    const prev = sel.value; // 選択を保持
     sel.innerHTML = '<option value="">選択してください</option>' +
       state.members.map(m =>
         `<option value="${m.member_id}"${m.withdrew_week ? ' disabled' : ''}>${m.name}${m.withdrew_week ? '（退場）' : ''}</option>`
       ).join('');
+    // 選択があれば復元、無効メンバーなら未選択のまま
+    if (prev) {
+      const opt = [...sel.options].find(o => o.value === prev && !o.disabled);
+      if (opt) sel.value = prev;
+    }
   }
 
   // 管理者側で集計する項目はチームリーダーの入力プルダウンから除外

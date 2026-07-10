@@ -21,7 +21,9 @@ function setupSheets() {
   let scores = ss.getSheetByName(CONFIG.SHEETS.SCORES);
   if (!scores) scores = ss.insertSheet(CONFIG.SHEETS.SCORES);
   scores.clear();
-  scores.appendRow(['id', 'timestamp', 'team_id', 'member_id', 'activity', 'count', 'points', 'week']);
+  scores.appendRow(['id', 'timestamp', 'team_id', 'member_id', 'activity', 'count', 'points', 'week', 'チーム', 'メンバー', '活動']);
+  // 見やすい列を薄い背景色に
+  scores.getRange(1, 9, 1, 3).setBackground('#e8f0fe').setFontWeight('bold');
 
   // settings
   let settings = ss.getSheetByName(CONFIG.SHEETS.SETTINGS);
@@ -705,6 +707,44 @@ function reconcileAdminSheet() {
     `✅ 整合性チェック完了\n\n` +
     `${processed} 行の状態を修正しました（scores シートとの不一致を解消）`
   );
+}
+
+/**
+ * 既存の scores シートに「チーム / メンバー / 活動」の見やすい列を追加＆全行に VLOOKUP を反映する。
+ * 一度実行すれば、以降は appendScore が自動で埋める。
+ */
+function enhanceScoresSheet() {
+  const sh = _sheet(CONFIG.SHEETS.SCORES);
+  const headers = sh.getRange(1, 1, 1, 11).getValues()[0];
+  // ヘッダー欠けを補う
+  if (headers[8] !== 'チーム')   sh.getRange(1, 9).setValue('チーム');
+  if (headers[9] !== 'メンバー') sh.getRange(1,10).setValue('メンバー');
+  if (headers[10] !== '活動')    sh.getRange(1,11).setValue('活動');
+  sh.getRange(1, 9, 1, 3).setBackground('#e8f0fe').setFontWeight('bold');
+
+  const last = sh.getLastRow();
+  if (last < 2) {
+    SpreadsheetApp.getUi().alert('scoresシートにデータがありません（ヘッダーだけ整えました）');
+    return;
+  }
+  // 既存全行に数式を挿入
+  const rows = last - 1;
+  const iFormulas = [], jFormulas = [], kFormulas = [];
+  for (let r = 2; r <= last; r++) {
+    iFormulas.push([`=IFERROR(VLOOKUP(C${r},teams!A:B,2,FALSE),"")`]);
+    jFormulas.push([`=IFERROR(VLOOKUP(D${r},members!A:B,2,FALSE),"")`]);
+    kFormulas.push([_ACTIVITY_LABEL_FORMULA.replace(/\{ROW\}/g, r)]);
+  }
+  sh.getRange(2, 9,  rows, 1).setFormulas(iFormulas);
+  sh.getRange(2,10,  rows, 1).setFormulas(jFormulas);
+  sh.getRange(2,11,  rows, 1).setFormulas(kFormulas);
+
+  // 列幅を調整
+  sh.setColumnWidth(9,  110);
+  sh.setColumnWidth(10, 130);
+  sh.setColumnWidth(11, 160);
+
+  SpreadsheetApp.getUi().alert(`✅ scoresシートに見やすい列を追加しました（${rows}行に反映）`);
 }
 
 /**
