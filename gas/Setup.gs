@@ -567,51 +567,102 @@ function onEdit(e) {
   // 競合防止: 同時編集で二重反映が起きないようスクリプトロックを取得
   const lock = LockService.getScriptLock();
   try {
-    if (!lock.tryLock(15000)) return; // 15秒で取れなければ諦める（次のイベントに任せる）
+    if (!lock.tryLock(15000)) return;
     if (!e || !e.range) return;
     const sh = e.range.getSheet();
     if (sh.getName() !== ADMIN_SHEET_NAME) return;
 
-    const row = e.range.getRow();
-    if (row <= 5) return;                    // ヘッダー行はスキップ
-    const col = e.range.getColumn();
+    // 選択範囲の全行を処理する（複数行一括削除にも対応）
+    const startRow = e.range.getRow();
+    const numRows  = e.range.getNumRows();
+    const startCol = e.range.getColumn();
+    const endCol   = startCol + e.range.getNumColumns() - 1;
+    const lookup   = _buildAdminLookup();
 
-    // チーム列（B=2）の変更 → メンバー列(C)のドロップダウンを絞り込む
-    if (col === 2) {
-      _updateMemberValidationForRow(sh, row, e.range.getValue());
-    }
+    for (let dr = 0; dr < numRows; dr++) {
+      const row = startRow + dr;
+      if (row <= 5) continue;    // ヘッダー
 
-    // メンバー列（C=3）の変更 → 所属チームを B列に自動反映
-    if (col === 3) {
-      _autoFillTeamFromMember(sh, row, e.range.getValue());
-    }
-
-    if (col >= 6) return;                    // ✓/時刻列の編集は無視
-
-    const rowData = sh.getRange(row, 1, 1, 7).getValues()[0];
-    const storedId = sh.getRange(row, 6).getNote(); // 反映時に保存したscore_id
-    const incomplete = _isAdminRowIncomplete(rowData);
-
-    // ケース1: 反映済みの行に編集が入った → 一旦 scores を消してリセット
-    if (storedId) {
-      _revertAdminRow(sh, row, storedId);
-      if (!incomplete) {
-        const lookup = _buildAdminLookup();
-        _syncSingleAdminRow(sh, row, rowData, lookup);
+      // チーム列(B=2)が範囲に含まれる → メンバー列(C)のドロップダウン更新
+      if (startCol <= 2 && endCol >= 2) {
+        _updateMemberValidationForRow(sh, row, sh.getRange(row, 2).getValue());
       }
-      return;
-    }
+      // メンバー列(C=3)が範囲に含まれる → チーム自動反映
+      if (startCol <= 3 && endCol >= 3) {
+        _autoFillTeamFromMember(sh, row, sh.getRange(row, 3).getValue());
+      }
 
-    // ケース2: 未反映の空行 → 5項目そろったら自動反映
-    if (!incomplete) {
-      const lookup = _buildAdminLookup();
-      _syncSingleAdminRow(sh, row, rowData, lookup);
+      // ✓/時刻列(F=6, G=7)のみの編集は sync/revert しない
+      if (startCol > 5) continue;
+
+      _processAdminRowChange(sh, row, lookup);
     }
   } catch (err) {
     console.error('onEdit error:', err);
   } finally {
     try { lock.releaseLock(); } catch (_) {}
   }
+}
+
+/**
+ * 1行の状態を判定して sync/revert する共通処理。
+ * - storedId ありで incomplete → 過去のスコア削除
+ * - storedId ありで complete   → 再反映
+ * - storedId なしで complete   → 新規反映
+ */
+function _processAdminRowChange(sh, row, lookup) {
+  const rowData = sh.getRange(row, 1, 1, 7).getValues()[0];
+  const storedId = sh.getRange(row, 6).getNote();
+  const incomplete = _isAdminRowIncomplete(rowData);
+
+  if (storedId) {
+    _revertAdminRow(sh, row, storedId);
+    if (!incomplete) _syncSingleAdminRow(sh, row, rowData, lookup);
+    return;
+  }
+  if (!incomplete) {
+    _syncSingleAdminRow(sh, row, rowData, lookup);
+  }
+}
+
+/**
+ * 【手動修復】管理者入力シートの現在の状態と scores シートの整合性を取る。
+ * 過去に一括削除などで onEdit が1行しか拾えなかった時、これで残った scores を掃除できる。
+ */
+function reconcileAdminSheet() {
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const admin = ss.getSheetByName(ADMIN_SHEET_NAME);
+  if (!admin) {
+    SpreadsheetApp.getUi().alert('管理者入力シートが見つかりません');
+    return;
+  }
+  const HEADER_ROW = 5;
+  const lastRow = Math.max(admin.getLastRow(), HEADER_ROW + 1);
+  const rowCount = lastRow - HEADER_ROW;
+  if (rowCount < 1) {
+    SpreadsheetApp.getUi().alert('入力データがありません');
+    return;
+  }
+  const lookup = _buildAdminLookup();
+  let processed = 0;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    for (let row = HEADER_ROW + 1; row <= lastRow; row++) {
+      const before = admin.getRange(row, 6).getNote();
+      _processAdminRowChange(admin, row, lookup);
+      const after = admin.getRange(row, 6).getNote();
+      if (before !== after) processed++;
+    }
+  } finally {
+    lock.releaseLock();
+  }
+
+  SpreadsheetApp.getUi().alert(
+    `✅ 整合性チェック完了\n\n` +
+    `${processed} 行の状態を修正しました（scores シートとの不一致を解消）`
+  );
 }
 
 /**
