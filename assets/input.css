@@ -179,6 +179,15 @@
   font-size: 11px;
 }
 .activity-tile.submitting { pointer-events: none; opacity: .6; }
+.hist-item.pending { opacity: .7; border-left: 3px solid #ffc107; padding-left: 9px; }
+.hist-pending-dot {
+  color: #ffc107;
+  font-size: 8px;
+  animation: pendingPulse 1s ease-in-out infinite;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+@keyframes pendingPulse { 0%,100%{opacity:.3} 50%{opacity:1} }
 .activity-tile.has-count {
   border-color: rgba(74,222,128,.35);
   background: linear-gradient(135deg, rgba(74,222,128,.08), rgba(74,222,128,.02));

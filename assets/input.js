@@ -253,9 +253,10 @@
     list.innerHTML = filtered.map(s => {
       const m = state.members.find(mm => String(mm.member_id) === String(s.member_id));
       const a = state.activities[s.activity];
+      const pending = s._pending;
       return `
-        <div class="hist-item">
-          <div class="hist-member">${m ? m.name : '?'}</div>
+        <div class="hist-item${pending ? ' pending' : ''}">
+          <div class="hist-member">${m ? m.name : '?'}${pending ? ' <span class="hist-pending-dot">●</span>' : ''}</div>
           <div class="hist-act">${a ? a.label : s.activity}</div>
           <div class="hist-count">×${s.count}</div>
           <div class="hist-pts ${s.points >= 0 ? 'p' : 'n'}">${s.points > 0 ? '+' : ''}${s.points}P</div>
@@ -265,10 +266,8 @@
     }).join('');
   }
 
-  // ── タップで即記録 ────────────────────
-  let tapInFlight = false;
+  // ── タップで即記録（楽観的UI: サーバー応答を待たずに即反映） ──
   async function tapActivity(activity) {
-    if (tapInFlight) return;
     const memberId = document.getElementById('memberSelect').value;
     if (!memberId) { toast('メンバーを選択してください', 'error'); return; }
     // ANYTIME_ACTIVITIES 以外は期間チェック（MSアドオン・1to1はいつでもOK）
@@ -279,10 +278,34 @@
     const a = state.activities[activity];
     if (!a) return;
 
-    const tile = document.querySelector(`.activity-tile[data-activity="${activity}"]`);
-    if (tile) tile.classList.add('submitting');
-    tapInFlight = true;
+    // MSアドオン1回制約をローカル即時チェック（サーバーも同じ検証を行う）
+    if (activity === 'ms_addon' && state.scores.some(s =>
+      String(s.member_id) === String(memberId) && s.activity === 'ms_addon')) {
+      toast('🔒 MSアドオンは既に受講記録済み', 'error');
+      return;
+    }
 
+    const points = a.sign === '-' ? -a.points : a.points;
+    const week = state.current_week || 1;
+
+    // ── 楽観的更新: ローカルstateに一時エントリを追加して即再描画 ──
+    const tempId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const tempEntry = {
+      id: tempId,
+      timestamp: new Date().toISOString(),
+      team_id: state.team && state.team.team_id,
+      member_id: memberId,
+      activity: activity,
+      count: 1,
+      points: points,
+      week: week,
+      _pending: true, // ペンディング表示用
+    };
+    state.scores.push(tempEntry);
+    render();
+    toast(`✓ ${a.label} ${points >= 0 ? '+' : ''}${points}P`, 'success');
+
+    // ── バックグラウンドでサーバー送信 ──
     try {
       const res = await BNI_API.submit({
         token: TOKEN,
@@ -292,26 +315,43 @@
         target_week: state.current_week,
       });
       if (!res.ok) throw new Error(translateError(res.error));
-      const points = a.sign === '-' ? -a.points : a.points;
-      toast(`✓ ${a.label} ${points >= 0 ? '+' : ''}${points}P`, 'success');
-      await load();
+      // 一時エントリを実データで置換
+      const idx = state.scores.findIndex(s => s.id === tempId);
+      if (idx >= 0) {
+        state.scores[idx] = Object.assign({}, res.entry || tempEntry, { _pending: false });
+        // トースト表示済みなので再renderは不要（見た目はほぼ同じ）
+        render();
+      }
     } catch (e) {
-      toast('送信失敗: ' + e.message, 'error');
-    } finally {
-      if (tile) tile.classList.remove('submitting');
-      tapInFlight = false;
+      // 失敗: 一時エントリを取り除いてロールバック
+      state.scores = state.scores.filter(s => s.id !== tempId);
+      render();
+      toast('❌ ' + e.message, 'error');
     }
   }
 
   // ── 削除 ───────────────────────────────
   async function deleteScore(scoreId) {
     if (!confirm('この記録を削除しますか？')) return;
+    // 一時（送信中）エントリはローカルで削除するだけ
+    if (String(scoreId).startsWith('tmp_')) {
+      state.scores = state.scores.filter(s => s.id !== scoreId);
+      render();
+      toast('✓ 削除しました', 'success');
+      return;
+    }
+    // 楽観的削除: 先にローカルから消してから API 送信
+    const target = state.scores.find(s => s.id === scoreId);
+    state.scores = state.scores.filter(s => s.id !== scoreId);
+    render();
     try {
       const res = await BNI_API.deleteScore({ token: TOKEN, score_id: scoreId });
       if (!res.ok) throw new Error(res.error || 'delete failed');
       toast('✓ 削除しました', 'success');
-      await load();
     } catch (e) {
+      // ロールバック
+      if (target) state.scores.push(target);
+      render();
       toast('削除失敗: ' + e.message, 'error');
     }
   }
