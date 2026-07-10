@@ -106,23 +106,41 @@
 .rc-pts.p { color: #4ade80; } .rc-pts.n { color: #f87171; }
 .rc-note { font-size: 10px; color: rgba(255,255,255,.3); margin-top: 4px; }
 .rb-footer {
-  margin-top: 20px;
-  padding: 18px 22px;
-  background: linear-gradient(135deg, rgba(181,0,0,.14), rgba(255,92,92,.06));
-  border: 1px solid rgba(181,0,0,.28);
-  border-radius: 12px;
-  font-size: 13px;
-  color: rgba(255,255,255,.85);
-  line-height: 2;
-  box-shadow: 0 4px 20px rgba(181,0,0,.15);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-top: 26px;
+  padding: 22px;
+  background: linear-gradient(135deg, rgba(181,0,0,.22) 0%, rgba(255,92,92,.08) 100%);
+  border: 2px solid rgba(255,120,120,.5);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(181,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
+  line-height: normal;
 }
-.rb-footer strong {
-  color: #ffb0b0;
-  font-weight: 800;
-  letter-spacing: .5px;
-  display: inline-block;
-  min-width: 108px;
+.rf-item {
+  background: rgba(9,9,15,.55);
+  border-radius: 10px;
+  padding: 14px 18px;
+  border-left: 4px solid #ffc107;
+  transition: transform .2s;
 }
+.rf-item:hover { transform: translateX(3px); border-left-color: #ffd54f; }
+.rf-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: #ffd54f;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rf-body {
+  font-size: 12.5px;
+  color: rgba(255,255,255,.92);
+  line-height: 1.75;
+}
+.rf-body strong { color: #ffb0b0; font-weight: 800; }
 
 /* ── SCHEDULE ── */
 .schedule-card {
