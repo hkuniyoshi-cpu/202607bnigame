@@ -87,14 +87,19 @@
       ).join('');
   }
 
+  // 管理者側で集計する項目はチームリーダーの入力プルダウンから除外
+  const LEADER_INPUT_EXCLUDED = ['absent', 'late', 'testimonial'];
+
   function renderActivityOptions() {
     const sel = document.getElementById('activitySelect');
     sel.innerHTML = '<option value="">選択してください</option>' +
-      Object.keys(state.activities).map(key => {
-        const a = state.activities[key];
-        const sign = a.sign === '-' ? '−' : '+';
-        return `<option value="${key}">${a.label}（${sign}${a.points}P）</option>`;
-      }).join('');
+      Object.keys(state.activities)
+        .filter(key => !LEADER_INPUT_EXCLUDED.includes(key))
+        .map(key => {
+          const a = state.activities[key];
+          const sign = a.sign === '-' ? '−' : '+';
+          return `<option value="${key}">${a.label}（${sign}${a.points}P）</option>`;
+        }).join('');
   }
 
   function renderHistory() {
