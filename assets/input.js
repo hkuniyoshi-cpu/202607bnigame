@@ -117,7 +117,7 @@
   }
 
   // 管理者側で集計する項目はチームリーダーの入力プルダウンから除外
-  const LEADER_INPUT_EXCLUDED = ['absent', 'late', 'testimonial'];
+  const LEADER_INPUT_EXCLUDED = ['absent', 'late', 'testimonial', 'visitor'];
 
   function renderActivityOptions() {
     const sel = document.getElementById('activitySelect');
