@@ -197,11 +197,16 @@ function rebuildSummary() {
         .setFontWeight('bold').setBackground('#E8F0FE');
     });
 
-    // 4) チーム合計（1メンバー目の行にのみ表示）
+    // 4) チーム合計（全メンバー行をセル結合して中央に1つ表示）
     if (memberCount > 0) {
+      const teamCellRange = sh.getRange(startRow + 2, startCol + 6, memberCount, 1);
+      teamCellRange.merge();
       sh.getRange(startRow + 2, startCol + 6)
         .setFormula(`=IFERROR(SUMIFS(scores!G:G, scores!C:C, "${team.team_id}"),0)`)
-        .setFontWeight('bold');
+        .setFontWeight('bold')
+        .setVerticalAlignment('middle')
+        .setHorizontalAlignment('center')
+        .setFontSize(14);
     }
 
     // 5) 合計行
