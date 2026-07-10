@@ -55,9 +55,8 @@
     renderWeekBanner();
     renderScoreCards();
     renderMemberOptions();
-    renderActivityOptions();
+    renderActivityGrid();
     renderHistory();
-    updatePreview();
   }
 
   // 週の期限表示（何週目か・締切日）
@@ -75,7 +74,6 @@
           <div class="wb-title">ゲーム期間外です</div>
           <div class="wb-sub">現在は入力できません（期間: 7/13〜8/12）</div>
         </div>`;
-      document.getElementById('submitBtn').disabled = true;
       return;
     }
     el.className = 'week-banner open';
@@ -85,7 +83,6 @@
         <div class="wb-title">現在受付中：第${cw}週</div>
         <div class="wb-sub">この入力は<strong style="color:#fff">第${cw}週の記録</strong>として保存されます｜締切: ${WEEK_ENDS_DISPLAY[cw-1]} 23:59</div>
       </div>`;
-    document.getElementById('submitBtn').disabled = false;
   }
 
   const WEEK_DATES = ['7/13〜7/19', '7/20〜7/26', '7/27〜8/2', '8/3〜8/12'];
@@ -131,17 +128,45 @@
   // 管理者側で集計する項目はチームリーダーの入力プルダウンから除外
   const LEADER_INPUT_EXCLUDED = ['absent', 'late', 'testimonial', 'visitor'];
 
-  function renderActivityOptions() {
-    const sel = document.getElementById('activitySelect');
-    sel.innerHTML = '<option value="">選択してください</option>' +
-      Object.keys(state.activities)
-        .filter(key => !LEADER_INPUT_EXCLUDED.includes(key))
-        .map(key => {
-          const a = state.activities[key];
-          const sign = a.sign === '-' ? '−' : '+';
-          return `<option value="${key}">${a.label}（${sign}${a.points}P）</option>`;
-        }).join('');
+  function renderActivityGrid() {
+    const grid = document.getElementById('activityGrid');
+    if (!grid) return;
+    const memberId = document.getElementById('memberSelect').value;
+    const currentWeek = state.current_week;
+    const disabled = !memberId || !currentWeek || currentWeek < 1;
+
+    const keys = Object.keys(state.activities).filter(k => !LEADER_INPUT_EXCLUDED.includes(k));
+    grid.innerHTML = keys.map(key => {
+      const a = state.activities[key];
+      const points = (a.sign === '-' ? -a.points : a.points);
+      const sign = points >= 0 ? '+' : '';
+      const cls = points >= 0 ? 'positive' : 'negative';
+      const weekCount = disabled ? 0 : state.scores.filter(s =>
+        String(s.member_id) === String(memberId) &&
+        s.activity === key &&
+        Number(s.week) === Number(currentWeek)
+      ).reduce((acc, s) => acc + Number(s.count || 0), 0);
+
+      return `
+        <button class="activity-tile ${cls}${weekCount > 0 ? ' has-count' : ''}"
+                data-activity="${key}"
+                onclick="tapActivity('${key}')"
+                ${disabled ? 'disabled' : ''}>
+          ${weekCount > 0 ? `<div class="tile-count-badge">今週 ${weekCount}件</div>` : ''}
+          <div class="tile-name">${a.label}</div>
+          <div class="tile-points">${sign}${points}<small>P</small></div>
+          <div class="tile-cta">＋ タップで加算</div>
+        </button>
+      `;
+    }).join('');
+
+    const hint = document.getElementById('tapHint');
+    if (hint) hint.style.display = disabled ? 'none' : 'block';
   }
+
+  window.onMemberChange = function() {
+    renderActivityGrid();
+  };
 
   function renderHistory() {
     // 週タブ（過去週には「締」マーカー、現在週は緑枠）
@@ -180,54 +205,39 @@
     }).join('');
   }
 
-  // ── ライブプレビュー ──────────────────
-  function updatePreview() {
-    const activity = document.getElementById('activitySelect').value;
-    const count    = parseInt(document.getElementById('countInput').value, 10) || 0;
-    const preview  = document.getElementById('preview');
-
-    if (!activity || count <= 0) {
-      preview.classList.remove('show');
-      return;
+  // ── タップで即記録 ────────────────────
+  let tapInFlight = false;
+  async function tapActivity(activity) {
+    if (tapInFlight) return;
+    const memberId = document.getElementById('memberSelect').value;
+    if (!memberId) { toast('メンバーを選択してください', 'error'); return; }
+    if (!state.current_week || state.current_week < 1) {
+      toast('現在は入力できません', 'error'); return;
     }
     const a = state.activities[activity];
-    const raw = a.points * count;
-    const pts = a.sign === '-' ? -raw : raw;
-    preview.textContent = `→ 加算予定: ${pts > 0 ? '+' : ''}${pts} P`;
-    preview.classList.toggle('negative', pts < 0);
-    preview.classList.add('show');
-  }
+    if (!a) return;
 
-  // ── 送信 ───────────────────────────────
-  async function submit() {
-    const member_id = document.getElementById('memberSelect').value;
-    const activity  = document.getElementById('activitySelect').value;
-    const count     = parseInt(document.getElementById('countInput').value, 10) || 0;
-
-    if (!member_id || !activity || count <= 0) {
-      toast('メンバー・活動・件数を全て入力してください', 'error');
-      return;
-    }
-
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.textContent = '送信中...';
+    const tile = document.querySelector(`.activity-tile[data-activity="${activity}"]`);
+    if (tile) tile.classList.add('submitting');
+    tapInFlight = true;
 
     try {
-      const res = await BNI_API.submit({ token: TOKEN, member_id, activity, count, target_week: state.current_week });
+      const res = await BNI_API.submit({
+        token: TOKEN,
+        member_id: memberId,
+        activity: activity,
+        count: 1,
+        target_week: state.current_week,
+      });
       if (!res.ok) throw new Error(translateError(res.error));
-      toast('✓ 記録しました', 'success');
-      // フォームリセット
-      document.getElementById('memberSelect').value = '';
-      document.getElementById('activitySelect').value = '';
-      document.getElementById('countInput').value = 1;
-      updatePreview();
+      const points = a.sign === '-' ? -a.points : a.points;
+      toast(`✓ ${a.label} ${points >= 0 ? '+' : ''}${points}P`, 'success');
       await load();
     } catch (e) {
       toast('送信失敗: ' + e.message, 'error');
     } finally {
-      btn.disabled = false;
-      btn.textContent = '記録する';
+      if (tile) tile.classList.remove('submitting');
+      tapInFlight = false;
     }
   }
 
@@ -270,8 +280,7 @@
   // ── expose to inline handlers ────────
   window.switchWeekTab = function(w) { currentTab = w; renderHistory(); };
   window.deleteScore  = deleteScore;
-  window.submitForm   = submit;
-  window.updatePreview = updatePreview;
+  window.tapActivity  = tapActivity;
 
   load();
 })();

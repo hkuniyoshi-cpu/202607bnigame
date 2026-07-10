@@ -45,30 +45,20 @@
 
     <div id="weekBanner" class="week-banner"></div>
 
-    <div class="form-grid">
-      <div class="form-row wide">
-        <label>メンバー</label>
-        <select id="memberSelect"></select>
-      </div>
-      <div class="form-row wide">
-        <label>活動</label>
-        <select id="activitySelect" onchange="updatePreview()"></select>
-      </div>
-      <div class="form-row">
-        <label>件数</label>
-        <input type="number" id="countInput" value="1" min="1" max="20" oninput="updatePreview()">
-      </div>
-      <div class="form-row" style="justify-content:flex-end">
-        <label style="visibility:hidden">-</label>
-        <button class="btn btn-primary" id="submitBtn" onclick="submitForm()">記録する</button>
-      </div>
+    <div class="member-picker">
+      <label>👤 メンバーを選択</label>
+      <select id="memberSelect" onchange="onMemberChange()"></select>
     </div>
 
-    <div class="preview" id="preview"></div>
+    <div class="tap-hint" id="tapHint">
+      ↓ 活動をタップして加算（1回タップ = +1件）
+    </div>
+
+    <div class="activity-grid" id="activityGrid"></div>
 
     <div class="hint">
       💡 入力は<strong>現在の週の記録として保存</strong>されます（過去週の入力はできません）<br>
-      💡 誤入力は下の履歴から削除できます
+      💡 タップで即記録・下の履歴から削除できます
     </div>
   </div>
 
