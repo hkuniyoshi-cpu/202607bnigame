@@ -21,6 +21,10 @@
   let cachedData = null;
 
   // ── データ取得 ─────────────────────────────
+  const LOADER_START = Date.now();
+  const LOADER_MIN_MS = 700; // 最低表示時間（見せてすぐ消える見た目のちらつき防止）
+  let loaderHidden = false;
+
   async function load() {
     try {
       const data = await BNI_API.fetchProgress();
@@ -35,10 +39,17 @@
   }
 
   function hideLoading() {
+    if (loaderHidden) return;
+    loaderHidden = true;
     const el = document.getElementById('loadingOverlay');
     if (!el) return;
-    el.classList.add('hidden');
-    setTimeout(() => { el.style.display = 'none'; }, 600);
+    const elapsed = Date.now() - LOADER_START;
+    const wait = Math.max(0, LOADER_MIN_MS - elapsed);
+    setTimeout(() => {
+      el.classList.add('hidden');
+      // フェード完了と同時に display:none にする
+      setTimeout(() => { el.style.display = 'none'; }, 350);
+    }, wait);
   }
 
   function showError(msg) {
