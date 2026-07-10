@@ -564,7 +564,10 @@ function installAdminOnEditTrigger() {
  * 全項目が埋まった時点で該当行だけを反映＆✓マーク。
  */
 function onEdit(e) {
+  // 競合防止: 同時編集で二重反映が起きないようスクリプトロックを取得
+  const lock = LockService.getScriptLock();
   try {
+    if (!lock.tryLock(15000)) return; // 15秒で取れなければ諦める（次のイベントに任せる）
     if (!e || !e.range) return;
     const sh = e.range.getSheet();
     if (sh.getName() !== ADMIN_SHEET_NAME) return;
@@ -606,7 +609,77 @@ function onEdit(e) {
     }
   } catch (err) {
     console.error('onEdit error:', err);
+  } finally {
+    try { lock.releaseLock(); } catch (_) {}
   }
+}
+
+/**
+ * scores シートの重複を検出＆削除する。
+ * 同じ (team_id, member_id, activity, count, week, points) の組が2件以上あったら
+ * 最も古いタイムスタンプの1件だけ残して他を削除する。
+ * 実行結果はダイアログで表示。
+ */
+function dedupeScores() {
+  const sh = _sheet(CONFIG.SHEETS.SCORES);
+  const values = sh.getDataRange().getValues();
+  if (values.length < 3) {
+    SpreadsheetApp.getUi().alert('scoresシートに重複はありません');
+    return;
+  }
+  const header = values[0];
+  const rows = values.slice(1);
+
+  // key で重複検知（tsだけ違う同一内容）
+  const groups = {};
+  rows.forEach((r, i) => {
+    if (r.every(c => c === '' || c === null)) return;
+    const key = [r[2], r[3], r[4], r[5], r[6], r[7]].join('|');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push({ rowIndex: i + 2, ts: r[1], id: r[0], data: r });
+  });
+
+  // 各グループで最古以外は削除対象
+  const removeRows = [];
+  const report = [];
+  Object.keys(groups).forEach(key => {
+    const group = groups[key];
+    if (group.length < 2) return;
+    group.sort((a, b) => new Date(a.ts) - new Date(b.ts));
+    const keep = group[0];
+    const dupes = group.slice(1);
+    dupes.forEach(d => removeRows.push(d.rowIndex));
+    report.push(`${key.split('|').slice(0,4).join(' / ')} → ${group.length}件（${dupes.length}件削除）`);
+  });
+
+  if (!removeRows.length) {
+    SpreadsheetApp.getUi().alert('scoresシートに重複はありません');
+    return;
+  }
+
+  // 下から順に削除（行番号がずれないように）
+  removeRows.sort((a, b) => b - a).forEach(r => sh.deleteRow(r));
+
+  SpreadsheetApp.getUi().alert(
+    `✅ 重複 ${removeRows.length} 件を削除しました\n\n` +
+    report.slice(0, 15).join('\n') +
+    (report.length > 15 ? `\n... 他${report.length - 15}件` : '')
+  );
+}
+
+/**
+ * 指定メンバー（氏名）のスコア一覧をコンソールに出力（診断用）
+ */
+function debugMemberScores(memberName) {
+  const nm = memberName || 'カヲル'; // 未指定時のデフォ
+  const members = readMembers();
+  const m = members.find(x => String(x.name) === nm);
+  if (!m) { Logger.log('メンバー未検出: ' + nm); return; }
+  const scores = readScores().filter(s => s.member_id === m.member_id);
+  Logger.log(`${nm} (${m.member_id}) の全スコア ${scores.length}件:`);
+  scores.forEach(s => {
+    Logger.log(`  W${s.week}: ${s.activity} × ${s.count} = ${s.points}P [${s.timestamp}] ${s.id}`);
+  });
 }
 
 /**
