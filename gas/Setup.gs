@@ -108,7 +108,7 @@ function rebuildSummary() {
   const SUBHEADERS = ['名前', '第1週', '第2週', '第3週', '第4週', '個人合計', 'チーム'];
 
   // タイトル行
-  sh.getRange(1, 1).setValue('BNI TOP チャプターゲーム — スコア集計（週別・自動更新）')
+  sh.getRange(1, 1).setValue('15th BNI GAME — スコア集計（週別・自動更新）')
     .setFontWeight('bold').setFontSize(14);
   sh.getRange(2, 1).setValue('※ scoresシートの入力が全自動でここに反映されます。')
     .setFontColor('#666').setFontSize(10);
@@ -252,7 +252,7 @@ function setupAdminSheet() {
   else sh = ss.insertSheet(ADMIN_SHEET_NAME);
 
   // タイトル・注意書き
-  sh.getRange(1, 1).setValue('BNI TOP チャプターゲーム — 管理者入力').setFontWeight('bold').setFontSize(14);
+  sh.getRange(1, 1).setValue('15th BNI GAME — 管理者入力').setFontWeight('bold').setFontSize(14);
   sh.getRange(2, 1).setValue('※ このシートに入力後、GASメニューから「syncAdminEntries」を実行するとscoresシートへ反映されます。')
     .setFontColor('#666').setFontSize(10);
   sh.getRange(3, 1).setValue('※ 反映済みの行はG列に✓と時刻が入ります。再度実行しても二重反映されません。')

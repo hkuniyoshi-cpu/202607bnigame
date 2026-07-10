@@ -47,8 +47,8 @@
   <text x="90" y="146" font-family="'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" font-weight="400" font-size="18" fill="#ffffff" opacity="0.55">2026年7月13日 — 8月12日</text>
 
   <!-- title -->
-  <text x="90" y="290" font-family="'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" font-weight="900" font-size="88" fill="#ffffff" letter-spacing="-2">チャプター</text>
-  <text x="90" y="390" font-family="'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" font-weight="900" font-size="88" fill="#ffffff" letter-spacing="-2">ゲーム 2026</text>
+  <text x="90" y="300" font-family="'Arial Black','Hiragino Kaku Gothic ProN',sans-serif" font-weight="900" font-size="110" fill="#ffffff" letter-spacing="-3">15th</text>
+  <text x="90" y="410" font-family="'Arial Black','Hiragino Kaku Gothic ProN',sans-serif" font-weight="900" font-size="80" fill="#ffffff" letter-spacing="-1">BNI GAME</text>
 
   <!-- subtitle -->
   <text x="94" y="450" font-family="'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif" font-weight="600" font-size="26" fill="#ffffff" opacity="0.7">17チーム・約90名で競う 4週間のポイントレース</text>
