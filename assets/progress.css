@@ -158,11 +158,19 @@
   opacity: 0;
   pointer-events: none;
 }
-.loader-content { text-align: center; }
+/* スピナーがビューポート中央、タイトルとサブテキストは絶対配置で下に */
+.loader-content {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 0; /* コンテンツは絶対配置なので高さゼロで中心基準に */
+}
 .loader-spinner {
-  position: relative;
+  position: absolute;
+  top: -40px; left: 50%;
+  transform: translateX(-50%);
   width: 80px; height: 80px;
-  margin: 0 auto 24px;
 }
 .loader-spinner span {
   position: absolute;
@@ -177,13 +185,18 @@
 .loader-spinner span:nth-child(4) { border-top-color: #b50000; animation-delay: -1.05s; }
 @keyframes loaderSpin { to { transform: rotate(360deg); } }
 .loader-title {
+  position: absolute;
+  top: 60px; left: 0; right: 0;
   font-size: 22px; font-weight: 900; color: #fff;
   letter-spacing: 1px;
-  margin-bottom: 6px;
+  text-align: center;
 }
 .loader-sub {
+  position: absolute;
+  top: 96px; left: 0; right: 0;
   font-size: 12px; color: rgba(255,255,255,.5);
   letter-spacing: 1.5px;
+  text-align: center;
   animation: loaderPulse 1.6s ease-in-out infinite;
 }
 @keyframes loaderPulse { 0%,100%{opacity:.5} 50%{opacity:1} }
