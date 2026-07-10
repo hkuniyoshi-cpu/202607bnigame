@@ -406,8 +406,28 @@ function syncAdminEntries() {
 }
 
 /**
+ * 【1回だけ実行】管理者入力シートに onEdit トリガーをインストールする。
+ * スタンドアロンGAS構成のため、簡易トリガー onEdit は自動で動かない。
+ * これを1度実行しておくと、以降は管理者入力シートに書くだけで自動反映される。
+ */
+function installAdminOnEditTrigger() {
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  // 既存のonEditトリガー（このプロジェクトのもの）を削除して重複回避
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'onEdit') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('onEdit').forSpreadsheet(ss).onEdit().create();
+  SpreadsheetApp.getUi().alert(
+    '✅ 自動反映トリガーを設定しました\n\n' +
+    '今後は「管理者入力」シートに入力するだけで、\n' +
+    '5項目（週・チーム・メンバー・活動・件数）が揃った時点で\n' +
+    'scores シートへ自動反映されます。'
+  );
+}
+
+/**
  * 【自動トリガー】管理者入力シートの編集で自動反映。
- * 簡易トリガー（インストール不要）— 関数名 onEdit は GAS 側が自動検知。
+ * installAdminOnEditTrigger() で登録した installable trigger から呼ばれる。
  * 全項目が埋まった時点で該当行だけを反映＆✓マーク。
  */
 function onEdit(e) {
