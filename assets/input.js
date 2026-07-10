@@ -108,7 +108,10 @@
       html += `
         <div class="score-card sc-card ${statusClass}">
           <div class="sc-badge">${statusLabel}</div>
-          <div class="sc-week">第${w}週<span class="sc-dates">${WEEK_DATES[w-1]}</span></div>
+          <div class="sc-head">
+            <div class="sc-week-num">第${w}週</div>
+            <div class="sc-dates">${WEEK_DATES[w-1]}</div>
+          </div>
           <div class="sc-value ${sign}">${val > 0 ? '+' : ''}${val.toFixed(1)}<small style="font-size:12px">pt</small></div>
           <div class="sc-members">${count}名参加</div>
         </div>
@@ -133,7 +136,13 @@
     if (!grid) return;
     const memberId = document.getElementById('memberSelect').value;
     const currentWeek = state.current_week;
-    const disabled = !memberId || !currentWeek || currentWeek < 1;
+    const outOfPeriod = !currentWeek || currentWeek < 1;
+    const noMember = !memberId;
+    const disabled = outOfPeriod || noMember;
+
+    let disabledReason = '';
+    if (outOfPeriod) disabledReason = '⛔ ゲーム期間外';
+    else if (noMember) disabledReason = '👆 上でメンバーを選択';
 
     const keys = Object.keys(state.activities).filter(k => !LEADER_INPUT_EXCLUDED.includes(k));
     grid.innerHTML = keys.map(key => {
@@ -148,14 +157,14 @@
       ).reduce((acc, s) => acc + Number(s.count || 0), 0);
 
       return `
-        <button class="activity-tile ${cls}${weekCount > 0 ? ' has-count' : ''}"
+        <button class="activity-tile ${cls}${weekCount > 0 ? ' has-count' : ''}${disabled ? ' locked' : ''}"
                 data-activity="${key}"
                 onclick="tapActivity('${key}')"
                 ${disabled ? 'disabled' : ''}>
           ${weekCount > 0 ? `<div class="tile-count-badge">今週 ${weekCount}件</div>` : ''}
           <div class="tile-name">${a.label}</div>
           <div class="tile-points">${sign}${points}<small>P</small></div>
-          <div class="tile-cta">＋ タップで加算</div>
+          <div class="tile-cta">${disabled ? disabledReason : '＋ タップで加算'}</div>
         </button>
       `;
     }).join('');

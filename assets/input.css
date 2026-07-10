@@ -35,12 +35,23 @@
 .sc-badge {
   position: absolute; top: 10px; right: 10px;
   font-size: 10px; font-weight: 800; letter-spacing: 1px;
-  padding: 3px 8px; border-radius: 999px;
+  padding: 3px 10px; border-radius: 999px;
   background: rgba(255,255,255,.06); color: rgba(255,255,255,.5);
 }
-.sc-week { font-size: 11px; color: rgba(255,255,255,.5); letter-spacing: 1.5px; font-weight: 700; }
-.sc-dates { font-size: 9px; color: rgba(255,255,255,.3); margin-left: 6px; font-weight: 400; letter-spacing: 0; }
-.sc-value { font-size: 24px; font-weight: 900; margin-top: 6px; }
+.sc-head { margin-bottom: 4px; }
+.sc-week-num {
+  font-size: 17px; font-weight: 900;
+  color: #fff;
+  letter-spacing: .5px;
+  line-height: 1.1;
+}
+.sc-dates {
+  font-size: 13px; font-weight: 700;
+  color: rgba(255,255,255,.7);
+  margin-top: 3px;
+  letter-spacing: .3px;
+}
+.sc-value { font-size: 26px; font-weight: 900; margin-top: 10px; }
 .sc-value.positive { color: #4ade80; }
 .sc-value.negative { color: #f87171; }
 .sc-value.neutral  { color: rgba(255,255,255,.6); }
@@ -76,8 +87,8 @@
   transform: translateY(-2px);
   animation: currentPulse 2.2s ease-in-out infinite;
 }
-.sc-card.current .sc-week { color: rgba(255,255,255,.85); }
-.sc-card.current .sc-dates { color: rgba(255,255,255,.6); }
+.sc-card.current .sc-week-num { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.sc-card.current .sc-dates { color: rgba(255,255,255,.95); }
 .sc-card.current .sc-value { color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.4); }
 .sc-card.current .sc-value.positive { color: #b3ffb3; }
 .sc-card.current .sc-value.negative { color: #ffb3b3; }
@@ -149,7 +160,24 @@
   transform: translateY(-2px);
 }
 .activity-tile:active:not(:disabled) { transform: translateY(0) scale(0.98); }
-.activity-tile:disabled { opacity: .4; cursor: not-allowed; }
+.activity-tile:disabled { cursor: not-allowed; }
+.activity-tile.locked {
+  opacity: .35;
+  filter: grayscale(60%);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(255,255,255,.02),
+    rgba(255,255,255,.02) 8px,
+    rgba(255,255,255,.04) 8px,
+    rgba(255,255,255,.04) 16px
+  );
+  border-color: rgba(255,255,255,.08);
+}
+.activity-tile.locked .tile-cta {
+  color: #f87171;
+  border-top-color: rgba(248,113,113,.15);
+  font-size: 11px;
+}
 .activity-tile.submitting { pointer-events: none; opacity: .6; }
 .activity-tile.has-count {
   border-color: rgba(74,222,128,.35);
