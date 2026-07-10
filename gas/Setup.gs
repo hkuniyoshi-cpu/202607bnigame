@@ -379,6 +379,40 @@ function _syncSingleAdminRow(admin, rowIndex, rowData, lookup) {
   return { ok: true };
 }
 
+/**
+ * 該当行のメンバー列(C)のドロップダウンを、選択中チームのメンバーだけに絞り込む。
+ * チーム名が未選択・不正の場合は全メンバーに戻す。
+ * 現在の値が新リストに含まれなければ自動でクリアする。
+ */
+function _updateMemberValidationForRow(sh, row, teamName) {
+  const ss = sh.getParent();
+  const memberCell = sh.getRange(row, 3);
+
+  const teams = readTeams();
+  const team = teams.find(t => String(t.name) === String(teamName));
+
+  let allowedNames;
+  if (team) {
+    allowedNames = readMembers()
+      .filter(m => String(m.team_id) === String(team.team_id))
+      .map(m => String(m.name));
+  } else {
+    // チーム未選択 → 全メンバー許可
+    allowedNames = readMembers().map(m => String(m.name));
+  }
+
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList(allowedNames, true)
+    .setAllowInvalid(false).build();
+  memberCell.setDataValidation(rule);
+
+  // 現在の値がリスト外なら消す
+  const current = String(memberCell.getValue() || '');
+  if (current && allowedNames.indexOf(current) === -1) {
+    memberCell.clearContent();
+  }
+}
+
 /** 反映済み行の scores を削除して ✓/時刻/ノートをクリアする */
 function _revertAdminRow(admin, rowIndex, scoreId) {
   const lock = LockService.getScriptLock();
@@ -517,7 +551,14 @@ function onEdit(e) {
 
     const row = e.range.getRow();
     if (row <= 5) return;                    // ヘッダー行はスキップ
-    if (e.range.getColumn() >= 6) return;    // ✓/時刻列の編集は無視
+    const col = e.range.getColumn();
+
+    // チーム列（B=2）の変更 → メンバー列(C)のドロップダウンを絞り込む
+    if (col === 2) {
+      _updateMemberValidationForRow(sh, row, e.range.getValue());
+    }
+
+    if (col >= 6) return;                    // ✓/時刻列の編集は無視
 
     const rowData = sh.getRange(row, 1, 1, 7).getValues()[0];
     const storedId = sh.getRange(row, 6).getNote(); // 反映時に保存したscore_id
@@ -526,7 +567,6 @@ function onEdit(e) {
     // ケース1: 反映済みの行に編集が入った → 一旦 scores を消してリセット
     if (storedId) {
       _revertAdminRow(sh, row, storedId);
-      // まだ5項目そろっているなら新IDで再反映
       if (!incomplete) {
         const lookup = _buildAdminLookup();
         _syncSingleAdminRow(sh, row, rowData, lookup);
@@ -542,4 +582,24 @@ function onEdit(e) {
   } catch (err) {
     console.error('onEdit error:', err);
   }
+}
+
+/**
+ * 全ての既存行のメンバードロップダウンを、現在選択中のチームに合わせて再構築する。
+ * 過去に「全メンバー選べる」状態で入力されたシートを一括で更新するために使う。
+ */
+function refreshAllMemberValidations() {
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const sh = ss.getSheetByName(ADMIN_SHEET_NAME);
+  if (!sh) {
+    SpreadsheetApp.getUi().alert('管理者入力シートが見つかりません');
+    return;
+  }
+  const HEADER_ROW = 5;
+  const targetRows = Math.max(sh.getLastRow(), 50);
+  for (let row = HEADER_ROW + 1; row <= targetRows; row++) {
+    const teamName = sh.getRange(row, 2).getValue();
+    _updateMemberValidationForRow(sh, row, teamName);
+  }
+  SpreadsheetApp.getUi().alert('✅ 全メンバードロップダウンをチーム別に絞り込みました');
 }
