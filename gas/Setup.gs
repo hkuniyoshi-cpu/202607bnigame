@@ -61,13 +61,50 @@ function listTokens() {
 }
 
 /**
- * 全スコアをリセットする（テスト用）— 本番前の動作確認後に実行
+ * 全スコア＆管理者入力シートの反映済みマーカーをリセットする（テスト用）
+ * - scores シートの全データ行を削除
+ * - 管理者入力シートの ✓/時刻/ノートも全クリア（入力データは保持）
+ * 本番開始前に一度実行して真っさらにするのに使う。
  */
 function resetScores() {
+  const ui = SpreadsheetApp.getUi();
+  const confirm = ui.alert(
+    '全スコアをリセット',
+    'scoresシート内の全データを削除し、管理者入力シートの反映済みマーカーもクリアします。\n\nこの操作は取り消せません。実行しますか？',
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) return;
+
+  // scores シート
   const sh = _sheet(CONFIG.SHEETS.SCORES);
   const last = sh.getLastRow();
-  if (last > 1) sh.deleteRows(2, last - 1);
-  Logger.log('scores を削除しました');
+  let scoreRows = 0;
+  if (last > 1) {
+    scoreRows = last - 1;
+    sh.deleteRows(2, scoreRows);
+  }
+
+  // 管理者入力シートの ✓/時刻/ノート
+  let adminCleared = 0;
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const admin = ss.getSheetByName(ADMIN_SHEET_NAME);
+  if (admin) {
+    const HEADER_ROW = 5;
+    const targetRows = Math.max(admin.getLastRow(), HEADER_ROW + 50) - HEADER_ROW;
+    if (targetRows > 0) {
+      const range = admin.getRange(HEADER_ROW + 1, 6, targetRows, 2);
+      const notes = range.getNotes();
+      adminCleared = notes.filter(n => n[0]).length;
+      range.clearContent().clearNote();
+    }
+  }
+
+  ui.alert(
+    `✅ リセット完了\n\n` +
+    `・scoresシート: ${scoreRows} 行削除\n` +
+    `・管理者入力の反映済みマーカー: ${adminCleared} 件クリア\n\n` +
+    `管理者入力シートの入力内容（週・チーム・メンバー・活動・件数）は保持しています。`
+  );
 }
 
 /**
