@@ -160,11 +160,23 @@ function submitScore_(body) {
   const count = Math.max(1, Math.min(Number(body.count) || 1, 20));
   const now = new Date();
 
-  // 対象週の入力可否チェック（過去週=期限切れ／未来週=まだ入力不可）
-  const target = Number(body.target_week) || _weekOf(now);
-  const gate = _validateInputWeek(now, target);
-  if (!gate.ok) return { ok: false, error: gate.error, current: gate.current };
-  const week = gate.week;
+  let week;
+  if (activity === 'ms_addon') {
+    // MSアドオン: オンライン受講のため期間チェックなし、ただし1メンバー1回限り
+    const already = readScores().some(s =>
+      String(s.member_id) === member_id && String(s.activity) === 'ms_addon'
+    );
+    if (already) return { ok: false, error: 'ms_addon_already_recorded' };
+    // 週は現在の週、期間外なら第1週（開始前）／第4週（終了後）へ寄せる
+    const w = _weekOf(now);
+    week = w > 0 ? w : (now < new Date(CONFIG.GAME_START) ? 1 : 4);
+  } else {
+    // 対象週の入力可否チェック（過去週=期限切れ／未来週=まだ入力不可）
+    const target = Number(body.target_week) || _weekOf(now);
+    const gate = _validateInputWeek(now, target);
+    if (!gate.ok) return { ok: false, error: gate.error, current: gate.current };
+    week = gate.week;
+  }
 
   const points = _computePoints(activity, count);
   const entry = {

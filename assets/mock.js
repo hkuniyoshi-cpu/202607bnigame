@@ -147,10 +147,17 @@
     if (body.token !== MOCK_TOKEN) return { ok: false, error: 'invalid_token' };
     const activity = ACTIVITIES[body.activity];
     if (!activity) return { ok: false, error: 'invalid_activity' };
-    // 対象週チェック（過去週→期限切れ／未来週→未開放）
-    const target = Number(body.target_week) || mockCurrentWeek;
-    if (target < mockCurrentWeek) return { ok: false, error: 'week_closed', current: mockCurrentWeek };
-    if (target > mockCurrentWeek) return { ok: false, error: 'week_not_open_yet', current: mockCurrentWeek };
+    // MSアドオン特別処理: 期間チェックなし、1メンバー1回限り
+    if (body.activity === 'ms_addon') {
+      const arr = mockScoresStore.t01 || [];
+      const already = arr.some(s => s.member_id === body.member_id && s.activity === 'ms_addon');
+      if (already) return { ok: false, error: 'ms_addon_already_recorded' };
+    } else {
+      // 対象週チェック（過去週→期限切れ／未来週→未開放）
+      const target = Number(body.target_week) || mockCurrentWeek;
+      if (target < mockCurrentWeek) return { ok: false, error: 'week_closed', current: mockCurrentWeek };
+      if (target > mockCurrentWeek) return { ok: false, error: 'week_not_open_yet', current: mockCurrentWeek };
+    }
     const raw = activity.points * body.count;
     const points = activity.sign === '-' ? -raw : raw;
     const entry = {

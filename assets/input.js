@@ -138,11 +138,6 @@
     const currentWeek = state.current_week;
     const outOfPeriod = !currentWeek || currentWeek < 1;
     const noMember = !memberId;
-    const disabled = outOfPeriod || noMember;
-
-    let disabledReason = '';
-    if (outOfPeriod) disabledReason = '⛔ ゲーム期間外';
-    else if (noMember) disabledReason = '👆 上でメンバーを選択';
 
     const keys = Object.keys(state.activities).filter(k => !LEADER_INPUT_EXCLUDED.includes(k));
     grid.innerHTML = keys.map(key => {
@@ -150,27 +145,65 @@
       const points = (a.sign === '-' ? -a.points : a.points);
       const sign = points >= 0 ? '+' : '';
       const cls = points >= 0 ? 'positive' : 'negative';
-      const weekCount = disabled ? 0 : state.scores.filter(s =>
-        String(s.member_id) === String(memberId) &&
-        s.activity === key &&
-        Number(s.week) === Number(currentWeek)
-      ).reduce((acc, s) => acc + Number(s.count || 0), 0);
+      const isMsAddon = key === 'ms_addon';
+
+      // MSアドオンは期間外でもタップ可、ただし1メンバー1回のみ
+      const msAddonRecorded = isMsAddon && !noMember && state.scores.some(s =>
+        String(s.member_id) === String(memberId) && s.activity === 'ms_addon'
+      );
+
+      let tileDisabled = false;
+      let disabledReason = '';
+      if (noMember) {
+        tileDisabled = true;
+        disabledReason = '👆 上でメンバーを選択';
+      } else if (isMsAddon && msAddonRecorded) {
+        tileDisabled = true;
+        disabledReason = '🔒 入力済み';
+      } else if (!isMsAddon && outOfPeriod) {
+        tileDisabled = true;
+        disabledReason = '⛔ ゲーム期間外';
+      }
+
+      // 今週の記録件数（MSアドオンは今週限定でなく全期間で1回）
+      let weekCount = 0;
+      if (!noMember) {
+        if (isMsAddon) {
+          weekCount = msAddonRecorded ? 1 : 0;
+        } else if (!outOfPeriod) {
+          weekCount = state.scores.filter(s =>
+            String(s.member_id) === String(memberId) &&
+            s.activity === key &&
+            Number(s.week) === Number(currentWeek)
+          ).reduce((acc, s) => acc + Number(s.count || 0), 0);
+        }
+      }
+
+      const countBadgeLabel = isMsAddon
+        ? (msAddonRecorded ? '受講済み' : null)
+        : (weekCount > 0 ? `今週 ${weekCount}件` : null);
+
+      const ctaText = tileDisabled
+        ? disabledReason
+        : (isMsAddon ? '＋ 受講記録する' : '＋ タップで加算');
 
       return `
-        <button class="activity-tile ${cls}${weekCount > 0 ? ' has-count' : ''}${disabled ? ' locked' : ''}"
+        <button class="activity-tile ${cls}${weekCount > 0 ? ' has-count' : ''}${tileDisabled ? ' locked' : ''}${isMsAddon ? ' anytime' : ''}"
                 data-activity="${key}"
                 onclick="tapActivity('${key}')"
-                ${disabled ? 'disabled' : ''}>
-          ${weekCount > 0 ? `<div class="tile-count-badge">今週 ${weekCount}件</div>` : ''}
-          <div class="tile-name">${a.label}</div>
+                ${tileDisabled ? 'disabled' : ''}>
+          ${countBadgeLabel ? `<div class="tile-count-badge">${countBadgeLabel}</div>` : ''}
+          <div class="tile-name">${a.label}${isMsAddon ? '<span class="tile-badge-inline">いつでもOK</span>' : ''}</div>
           <div class="tile-points">${sign}${points}<small>P</small></div>
-          <div class="tile-cta">${disabled ? disabledReason : '＋ タップで加算'}</div>
+          <div class="tile-cta">${ctaText}</div>
         </button>
       `;
     }).join('');
 
+    // ヒント表示: 他タイルが1つでもタップ可能ならヒント表示
+    const anyEnabled = document.querySelectorAll('.activity-tile:not([disabled])').length > 0;
     const hint = document.getElementById('tapHint');
-    if (hint) hint.style.display = disabled ? 'none' : 'block';
+    if (hint) hint.style.display = anyEnabled ? 'block' : 'none';
   }
 
   window.onMemberChange = function() {
@@ -220,7 +253,8 @@
     if (tapInFlight) return;
     const memberId = document.getElementById('memberSelect').value;
     if (!memberId) { toast('メンバーを選択してください', 'error'); return; }
-    if (!state.current_week || state.current_week < 1) {
+    // MSアドオン以外は期間チェック（MSアドオンはいつでもOK）
+    if (activity !== 'ms_addon' && (!state.current_week || state.current_week < 1)) {
       toast('現在は入力できません', 'error'); return;
     }
     const a = state.activities[activity];
@@ -266,14 +300,15 @@
   // ── エラーメッセージ日本語化 ─────────
   function translateError(code) {
     switch (code) {
-      case 'week_closed':        return '入力期限が過ぎています';
-      case 'week_not_open_yet':  return 'まだ入力できません（次週の開始をお待ちください）';
-      case 'out_of_game_period': return 'ゲーム期間外です（7/13〜8/12）';
-      case 'invalid_week':       return '対象週が不正です';
-      case 'invalid_token':      return 'トークンが無効です';
-      case 'invalid_activity':   return '活動区分が不正です';
-      case 'invalid_member':     return 'メンバーが不正です';
-      default:                   return code || '送信に失敗しました';
+      case 'week_closed':              return '入力期限が過ぎています';
+      case 'week_not_open_yet':        return 'まだ入力できません（次週の開始をお待ちください）';
+      case 'out_of_game_period':       return 'ゲーム期間外です（7/13〜8/12）';
+      case 'invalid_week':             return '対象週が不正です';
+      case 'invalid_token':            return 'トークンが無効です';
+      case 'invalid_activity':         return '活動区分が不正です';
+      case 'invalid_member':           return 'メンバーが不正です';
+      case 'ms_addon_already_recorded':return '🔒 MSアドオンは既に受講記録済みです（1人1回のみ）';
+      default:                         return code || '送信に失敗しました';
     }
   }
 
