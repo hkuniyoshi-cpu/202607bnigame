@@ -1,13 +1,16 @@
 // 進捗ページのメインロジック。
 (function () {
   // ── 表彰式サスペンス（最終週モザイク）設定 ──
-  // 発表用スライドを作る「表彰式当日まで最終週の値を隠す」機能
-  // 有効化: URLに ?suspense=1 を付ける（誰でも見れる）
-  // バイパス: URLに ?admin=<KEY> を付ける（管理者だけ実数値を見れる）
+  // 8/2（第3週締切後）以降、自動で最終週の値を隠す
+  // バイパス: URLに ?admin=<KEY> を付けると管理者だけ実数値を見れる
+  // テスト表示: URLに ?suspense=1 を付けると即座に有効化
   const ADMIN_REVEAL_KEY = 'kuniyoshi2026';
+  const SUSPENSE_AUTO_FROM = new Date('2026-08-02T00:00:00+09:00');
   const _q = new URLSearchParams(location.search);
   const isRevealed = _q.get('admin') === ADMIN_REVEAL_KEY;
-  const suspenseActive = _q.get('suspense') === '1' && !isRevealed;
+  const dateBased = new Date() >= SUSPENSE_AUTO_FROM;
+  const suspenseFromUrl = _q.get('suspense') === '1';
+  const suspenseActive = (dateBased || suspenseFromUrl) && !isRevealed;
   window.__SUSPENSE__ = suspenseActive;
 
   const DATE_POINTS = [
