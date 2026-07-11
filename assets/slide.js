@@ -107,7 +107,7 @@
     );
 
     const top5 = sorted.slice(0, 5);
-    const rest = sorted.slice(5, 17); // 6-17位まで
+    const rest = sorted.slice(5, 20); // 6-20位まで
 
     const medals = ['🥇', '🥈', '🥉', '4', '5'];
     document.getElementById('slidePodium').innerHTML = top5.map((m, i) => {
