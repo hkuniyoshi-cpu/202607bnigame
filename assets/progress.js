@@ -50,8 +50,12 @@
 
   function renderSuspenseBanner() {
     let banner = document.getElementById('suspenseBanner');
+    const chartWrap = document.querySelector('.chart-wrap');
+    let mask = chartWrap && chartWrap.querySelector('.chart-suspense-mask');
+
     if (!suspenseActive) {
       if (banner) banner.remove();
+      if (mask) mask.remove();
       document.body.classList.remove('suspense');
       return;
     }
@@ -63,6 +67,13 @@
       banner.innerHTML = '🎉 <strong>最終順位は表彰式で発表！</strong> — お楽しみに';
       const errBox = document.getElementById('errorBox');
       errBox.parentNode.insertBefore(banner, errBox.nextSibling);
+    }
+    // 最終週セグメント（8/2〜8/12）を覆うマスクを追加
+    if (chartWrap && !mask) {
+      mask = document.createElement('div');
+      mask.className = 'chart-suspense-mask';
+      mask.innerHTML = '<div class="sm-icon">🎉</div><div class="sm-text">最終結果は<br>表彰式で発表</div>';
+      chartWrap.appendChild(mask);
     }
   }
 

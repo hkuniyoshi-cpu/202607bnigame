@@ -165,8 +165,29 @@
 }
 .rank-masked-num { filter: blur(6px); }
 body.suspense .rank-item { pointer-events: none; }
-/* サスペンス時はチャートを非表示 */
-body.suspense .chart-wrap { filter: blur(14px); opacity: .5; pointer-events: none; }
+/* サスペンス時: チャートの最終週セグメントだけを覆う「?」オーバーレイ */
+.chart-wrap { position: relative; }
+.chart-suspense-mask {
+  position: absolute;
+  right: 0; top: 0; bottom: 26px;
+  width: 25%; /* 全4週の最終区間 */
+  background: linear-gradient(90deg, rgba(9,9,15,0), #09090f 30%, #09090f 100%);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  border-left: 2px dashed rgba(255,193,7,.45);
+  pointer-events: none;
+  z-index: 5;
+  gap: 4px;
+}
+.chart-suspense-mask .sm-icon { font-size: 32px; opacity: .8; }
+.chart-suspense-mask .sm-text {
+  color: #ffd54f;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-align: center;
+  line-height: 1.6;
+}
 body.suspense .custom-legend { filter: blur(6px); pointer-events: none; }
 
 /* ── LOADING OVERLAY ── */
