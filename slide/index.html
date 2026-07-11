@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>15th BNI GAME — 順位表スライド（管理者用）</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="stylesheet" href="../assets/slide.css?v=13">
+</head>
+<body>
+
+<div class="slide-wrap">
+  <div class="slide" id="slide">
+    <div class="slide-header">
+      <div class="sh-left">
+        <div class="sh-org">BNI TOP CHAPTER</div>
+        <div class="sh-title">15th BNI GAME</div>
+      </div>
+      <div class="sh-right">
+        <div class="sh-week" id="slideWeek">— 週目</div>
+        <div class="sh-date" id="slideDate">2026-07-13〜08-12</div>
+      </div>
+    </div>
+
+    <div class="slide-body">
+      <div class="podium" id="slidePodium"></div>
+      <div class="rest" id="slideRest"></div>
+    </div>
+
+    <div class="slide-footer">
+      <span>Powered by</span><strong>SearchMania Inc.</strong>
+      <span class="sf-updated" id="slideUpdated"></span>
+    </div>
+  </div>
+</div>
+
+<div class="admin-panel">
+  <button onclick="reload()">↺ 更新</button>
+  <button onclick="toggleView()">チーム / 個人</button>
+  <span class="hint">💡 このページをスクリーンショットしてPPTに貼付</span>
+</div>
+
+<script src="../assets/config.js?v=13"></script>
+<script src="../assets/api.js?v=13"></script>
+<script src="../assets/slide.js?v=13"></script>
+</body>
+</html>

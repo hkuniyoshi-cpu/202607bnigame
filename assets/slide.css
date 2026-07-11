@@ -1,0 +1,243 @@
+/* スライド出力ページ（PowerPoint貼付用 16:9） */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #09090f;
+  font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 16:9 コンテナ（画面幅・高さの小さい方に合わせて縮小） */
+.slide-wrap {
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+.slide {
+  /* 16:9 を厳守: 幅と高さのうち制約が厳しい方に合わせる */
+  width: min(calc(100vw - 40px), calc((100vh - 40px) * 16 / 9));
+  height: min(calc(100vh - 40px), calc((100vw - 40px) * 9 / 16));
+  max-width: 1600px;
+  max-height: 900px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(181,0,0,.25), transparent 55%),
+    linear-gradient(135deg, #0a0a12 0%, #1a0808 50%, #0a0a12 100%);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 32px 40px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 背景装飾 */
+.slide::before {
+  content: '';
+  position: absolute;
+  top: -20%; right: -10%;
+  width: 60%; height: 140%;
+  background:
+    radial-gradient(circle, rgba(255,92,92,.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ── ヘッダー ── */
+.slide-header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding-bottom: 18px;
+  border-bottom: 2px solid rgba(181,0,0,.5);
+  margin-bottom: 22px;
+  position: relative;
+}
+.sh-left { display: flex; flex-direction: column; }
+.sh-org {
+  font-size: 12px; letter-spacing: 4px;
+  color: #ff5c5c; font-weight: 700;
+  margin-bottom: 4px;
+}
+.sh-title {
+  font-size: 42px; font-weight: 900;
+  letter-spacing: -1px;
+  background: linear-gradient(90deg, #fff, #ffcaca);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sh-right { text-align: right; }
+.sh-week {
+  display: inline-block;
+  background: rgba(181,0,0,.4);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 14px; font-weight: 800;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.sh-date { font-size: 12px; color: rgba(255,255,255,.55); }
+
+/* ── 本体 ── */
+.slide-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 24px;
+  min-height: 0;
+}
+
+/* TOP3 表彰台 */
+.podium {
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 0;
+}
+.podium-item {
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  position: relative;
+}
+.podium-item.p1 {
+  background: linear-gradient(90deg, rgba(255,215,0,.25), rgba(255,215,0,.05));
+  border: 2px solid #ffd700;
+  padding: 16px 20px;
+}
+.podium-item.p2 {
+  background: linear-gradient(90deg, rgba(192,192,192,.2), rgba(192,192,192,.03));
+  border: 2px solid rgba(192,192,192,.6);
+}
+.podium-item.p3 {
+  background: linear-gradient(90deg, rgba(205,127,50,.22), rgba(205,127,50,.04));
+  border: 2px solid rgba(205,127,50,.6);
+}
+.podium-item.pn {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  padding: 10px 18px;
+}
+.p-medal { font-size: 34px; text-align: center; line-height: 1; }
+.podium-item.pn .p-medal {
+  font-size: 20px; color: rgba(255,255,255,.4); font-weight: 900;
+}
+.p-info { min-width: 0; }
+.p-name {
+  font-size: 20px; font-weight: 900; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.15;
+}
+.podium-item.p1 .p-name { font-size: 24px; }
+.podium-item.pn .p-name { font-size: 15px; }
+.p-sub {
+  font-size: 11px; color: rgba(255,255,255,.5);
+  margin-top: 2px; letter-spacing: .3px;
+}
+.p-score {
+  font-size: 28px; font-weight: 900;
+  color: #fff;
+  text-align: right;
+  white-space: nowrap;
+}
+.podium-item.p1 .p-score { font-size: 34px; color: #ffd700; }
+.podium-item.pn .p-score { font-size: 18px; color: rgba(255,255,255,.85); }
+.p-score small { font-size: 12px; opacity: .6; margin-left: 2px; }
+
+/* 残り（4位以下） */
+.rest {
+  display: flex; flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+.rest-title {
+  font-size: 10px; letter-spacing: 3px;
+  color: rgba(255,255,255,.35);
+  margin-bottom: 8px;
+}
+.rest-item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.03);
+}
+.rest-rank {
+  font-size: 12px; font-weight: 900;
+  color: rgba(255,255,255,.5);
+  text-align: center;
+}
+.rest-name {
+  font-size: 12px; font-weight: 700; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.rest-score {
+  font-size: 13px; font-weight: 800;
+  color: rgba(255,255,255,.85);
+  white-space: nowrap;
+}
+
+/* ── フッター ── */
+.slide-footer {
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10px; color: rgba(255,255,255,.35);
+  letter-spacing: 1px;
+}
+.slide-footer strong { color: rgba(255,255,255,.7); font-weight: 700; letter-spacing: 1.5px; }
+.sf-updated { margin-left: auto; color: rgba(255,255,255,.4); }
+
+/* ── 管理者パネル ── */
+.admin-panel {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20,20,25,.9);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 999px;
+  padding: 10px 20px;
+  display: flex; align-items: center; gap: 12px;
+  backdrop-filter: blur(20px);
+  z-index: 100;
+}
+.admin-panel button {
+  background: #b50000;
+  color: #fff; border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: 12px; font-weight: 700;
+  cursor: pointer;
+}
+.admin-panel button:hover { background: #d10000; }
+.admin-panel .hint {
+  font-size: 11px; color: rgba(255,255,255,.5);
+}
+
+.access-denied {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: #09090f;
+  color: rgba(255,255,255,.4);
+  font-size: 14px;
+  z-index: 1000;
+  text-align: center;
+  padding: 40px;
+}
+
+@media print {
+  body { background: #09090f; }
+  .admin-panel { display: none; }
+  .slide { max-width: 100%; box-shadow: none; }
+}

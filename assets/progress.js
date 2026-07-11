@@ -1,5 +1,15 @@
 // 進捗ページのメインロジック。
 (function () {
+  // ── 表彰式サスペンス（最終週モザイク）設定 ──
+  // 発表用スライドを作る「表彰式当日まで最終週の値を隠す」機能
+  // 有効化: URLに ?suspense=1 を付ける（誰でも見れる）
+  // バイパス: URLに ?admin=<KEY> を付ける（管理者だけ実数値を見れる）
+  const ADMIN_REVEAL_KEY = 'kuniyoshi2026';
+  const _q = new URLSearchParams(location.search);
+  const isRevealed = _q.get('admin') === ADMIN_REVEAL_KEY;
+  const suspenseActive = _q.get('suspense') === '1' && !isRevealed;
+  window.__SUSPENSE__ = suspenseActive;
+
   const DATE_POINTS = [
     new Date('2026-07-13T00:00:00+09:00'),
     new Date('2026-07-19T23:59:59+09:00'),
@@ -35,6 +45,24 @@
     } catch (e) {
       showError('データ取得に失敗しました: ' + e.message);
       hideLoading();
+    }
+  }
+
+  function renderSuspenseBanner() {
+    let banner = document.getElementById('suspenseBanner');
+    if (!suspenseActive) {
+      if (banner) banner.remove();
+      document.body.classList.remove('suspense');
+      return;
+    }
+    document.body.classList.add('suspense');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'suspenseBanner';
+      banner.className = 'suspense-banner';
+      banner.innerHTML = '🎉 <strong>最終順位は表彰式で発表！</strong> — お楽しみに';
+      const errBox = document.getElementById('errorBox');
+      errBox.parentNode.insertBefore(banner, errBox.nextSibling);
     }
   }
 
@@ -216,17 +244,26 @@
     const sorted = [...datasets].sort((a, b) =>
       b.data[b.data.length - 1] - a.data[a.data.length - 1]
     );
-    document.getElementById('rankingList').innerHTML = sorted.map((d, i) => `
+    document.getElementById('rankingList').innerHTML = sorted.map((d, i) => {
+      const scoreVal = d.data[d.data.length-1].toFixed(1);
+      const scoreDisplay = suspenseActive
+        ? `<span class="rank-masked">${scoreVal}</span><span>pt</span>`
+        : `${scoreVal}<span>pt</span>`;
+      const rankDisplay = suspenseActive
+        ? `<span class="rank-masked-num">${i+1}</span>`
+        : (i+1);
+      return `
       <div class="rank-item ${i===0?'r1':i===1?'r2':i===2?'r3':''}">
-        <div class="rnum ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</div>
+        <div class="rnum ${i===0?'g':i===1?'s':i===2?'b':''}">${rankDisplay}</div>
         <div class="rdot" style="background:${d._rank<5?d.borderColor:GRAY}"></div>
         <div class="rinfo">
           <div class="rname">${d.label}</div>
           <div class="rsub">${isTeam ? d.memberCount+'名・平均点' : d.team}</div>
         </div>
-        <div class="rscore">${d.data[d.data.length-1].toFixed(1)}<span>pt</span></div>
+        <div class="rscore">${scoreDisplay}</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
   function renderLegend(datasets) {
@@ -247,6 +284,7 @@
 
   function render() {
     renderHeader();
+    renderSuspenseBanner();
     const ds = currentView === 'team' ? buildTeamDatasets() : buildMemberDatasets();
     createChart(getDatasets());
     renderRanking(ds);

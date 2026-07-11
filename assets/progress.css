@@ -142,6 +142,33 @@
 }
 .rf-body strong { color: #ffb0b0; font-weight: 800; }
 
+/* ── サスペンスモード（最終順位隠し） ── */
+.suspense-banner {
+  margin: 12px 32px 0;
+  padding: 14px 20px;
+  background: linear-gradient(90deg, rgba(255,193,7,.18), rgba(255,215,0,.06));
+  border: 1px solid rgba(255,193,7,.4);
+  border-radius: 10px;
+  color: #ffd54f;
+  font-size: 13px;
+  text-align: center;
+  animation: suspensePulse 2.4s ease-in-out infinite;
+}
+.suspense-banner strong { color: #fff; font-weight: 800; }
+@keyframes suspensePulse { 0%,100%{opacity:.8} 50%{opacity:1} }
+
+.rank-masked, .rank-masked-num {
+  display: inline-block;
+  filter: blur(8px);
+  user-select: none;
+  color: rgba(255,255,255,.85);
+}
+.rank-masked-num { filter: blur(6px); }
+body.suspense .rank-item { pointer-events: none; }
+/* サスペンス時はチャートを非表示 */
+body.suspense .chart-wrap { filter: blur(14px); opacity: .5; pointer-events: none; }
+body.suspense .custom-legend { filter: blur(6px); pointer-events: none; }
+
 /* ── LOADING OVERLAY ── */
 .loading-overlay {
   position: fixed;
