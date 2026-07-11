@@ -167,34 +167,37 @@ body {
 /* 残り（4位以下） */
 .rest {
   display: flex; flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   overflow: hidden;
+  min-height: 0;
 }
 .rest-title {
   font-size: 10px; letter-spacing: 3px;
   color: rgba(255,255,255,.35);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
 }
 .rest-item {
   display: grid;
-  grid-template-columns: 32px 1fr auto;
-  gap: 10px;
+  grid-template-columns: 28px 1fr auto;
+  gap: 8px;
   align-items: center;
-  padding: 5px 12px;
+  padding: 3px 10px;
   border-radius: 6px;
   background: rgba(255,255,255,.03);
+  flex-shrink: 0;
 }
 .rest-rank {
-  font-size: 12px; font-weight: 900;
+  font-size: 11px; font-weight: 900;
   color: rgba(255,255,255,.5);
   text-align: center;
 }
 .rest-name {
-  font-size: 12px; font-weight: 700; color: #fff;
+  font-size: 11px; font-weight: 700; color: #fff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .rest-score {
-  font-size: 13px; font-weight: 800;
+  font-size: 12px; font-weight: 800;
   color: rgba(255,255,255,.85);
   white-space: nowrap;
 }
