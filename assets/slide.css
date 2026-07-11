@@ -72,6 +72,18 @@ body {
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+.sh-view {
+  display: inline-block;
+  margin-top: 6px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
 .sh-right { text-align: right; }
 .sh-week {
   display: inline-block;
@@ -198,31 +210,59 @@ body {
 .slide-footer strong { color: rgba(255,255,255,.7); font-weight: 700; letter-spacing: 1.5px; }
 .sf-updated { margin-left: auto; color: rgba(255,255,255,.4); }
 
-/* ── 管理者パネル ── */
+/* ── 管理者パネル（スクショに映らないよう自動フェード） ── */
 .admin-panel {
   position: fixed;
-  bottom: 20px; left: 50%;
-  transform: translateX(-50%);
-  background: rgba(20,20,25,.9);
+  top: 20px; right: 20px;
+  background: rgba(20,20,25,.85);
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 999px;
-  padding: 10px 20px;
-  display: flex; align-items: center; gap: 12px;
+  padding: 8px 14px;
+  display: flex; align-items: center; gap: 10px;
   backdrop-filter: blur(20px);
   z-index: 100;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity .3s ease, transform .3s ease;
+  pointer-events: none;
+}
+body.panel-visible .admin-panel {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 .admin-panel button {
   background: #b50000;
   color: #fff; border: none;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border-radius: 20px;
   font-family: inherit;
-  font-size: 12px; font-weight: 700;
+  font-size: 11px; font-weight: 700;
   cursor: pointer;
 }
 .admin-panel button:hover { background: #d10000; }
 .admin-panel .hint {
-  font-size: 11px; color: rgba(255,255,255,.5);
+  font-size: 10px; color: rgba(255,255,255,.5);
+}
+/* 「マウスを動かすとパネル表示」ヒント（初回のみ） */
+.panel-hint {
+  position: fixed;
+  top: 20px; right: 20px;
+  background: rgba(181,0,0,.9);
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  z-index: 99;
+  animation: hintPulse 2.5s ease-in-out;
+  animation-fill-mode: forwards;
+  pointer-events: none;
+}
+@keyframes hintPulse {
+  0% { opacity: 0; transform: translateY(-6px); }
+  10%, 70% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); visibility: hidden; }
 }
 
 .access-denied {

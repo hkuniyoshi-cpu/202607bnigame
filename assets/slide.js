@@ -51,6 +51,9 @@
     document.getElementById('slideUpdated').textContent =
       `更新: ${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
+    document.getElementById('slideView').textContent =
+      view === 'team' ? '📊 チーム順位' : '👤 個人順位';
+
     if (view === 'team') {
       renderTeams();
     } else {
@@ -104,7 +107,7 @@
     );
 
     const top5 = sorted.slice(0, 5);
-    const rest = sorted.slice(5, 20); // 6-20位まで
+    const rest = sorted.slice(5, 17); // 6-17位まで
 
     const medals = ['🥇', '🥈', '🥉', '4', '5'];
     document.getElementById('slidePodium').innerHTML = top5.map((m, i) => {
@@ -122,8 +125,9 @@
       `;
     }).join('');
 
+    const lastRank = 5 + rest.length;
     document.getElementById('slideRest').innerHTML =
-      '<div class="rest-title">個人 RANK 6 — 20</div>' +
+      `<div class="rest-title">個人 RANK 6 — ${lastRank}</div>` +
       rest.map((m, i) => {
         const rank = i + 6;
         const score = m.cumulative[m.cumulative.length-1].toFixed(1);
@@ -142,6 +146,30 @@
     view = view === 'team' ? 'member' : 'team';
     render();
   };
+
+  // ── 管理パネル自動フェード ──
+  // マウス動作で表示、3秒無操作で消える → スクリーンショットに映らない
+  let hideTimer;
+  function showPanel() {
+    document.body.classList.add('panel-visible');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      document.body.classList.remove('panel-visible');
+    }, 3000);
+  }
+  window.addEventListener('mousemove', showPanel);
+  window.addEventListener('touchstart', showPanel);
+  window.addEventListener('keydown', (e) => {
+    // 'h' で強制非表示、't' でview切替、'r' でリロード
+    if (e.key === 'h' || e.key === 'H') {
+      document.body.classList.remove('panel-visible');
+      clearTimeout(hideTimer);
+    } else if (e.key === 't' || e.key === 'T') {
+      window.toggleView();
+    } else if (e.key === 'r' || e.key === 'R') {
+      window.reload();
+    }
+  });
 
   load();
   // 60秒ごとに自動更新
