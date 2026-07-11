@@ -211,7 +211,7 @@
                 onclick="tapActivity('${key}')"
                 ${tileDisabled ? 'disabled' : ''}>
           ${countBadgeLabel ? `<div class="tile-count-badge">${countBadgeLabel}</div>` : ''}
-          <div class="tile-name">${a.label}${isAnytime ? '<span class="tile-badge-inline">いつでもOK</span>' : ''}</div>
+          <div class="tile-name">${a.label}</div>
           <div class="tile-points">${sign}${points}<small>P</small></div>
           <div class="tile-cta">${ctaText}</div>
         </button>
