@@ -140,6 +140,18 @@
   // 期間チェックをスキップする「いつでもOK」の活動
   const ANYTIME_ACTIVITIES = ['ms_addon', 'one_to_one'];
 
+  // 各週で開催予定のトレーニング（進捗ページのスケジュールに基づく）
+  //  1週: 7/13 CDT/MSD/7/14 リファーラルKKS/7/16 NST/パワーチーム
+  //  2週: 7/21 メインプレゼンKKS/パワーチーム
+  //  3週: 7/29 ウィークリーKKS/7/30 対面パワーチーム(前半+後半)
+  //  4週: 8/5 メインプレゼンKKS/8/7 メンバーズフォーラム/8/10 ウィークリー・MSD/8/12 1to1KKS
+  const WEEK_SCHEDULED_ACTIVITIES = {
+    1: ['key_skills', 'mindset', 'training_other', 'pt_ws_first', 'pt_ws_second'],
+    2: ['key_skills', 'pt_ws_first', 'pt_ws_second'],
+    3: ['key_skills', 'pt_ws_first', 'pt_ws_second'],
+    4: ['key_skills', 'mindset', 'training_other'],
+  };
+
   function renderActivityGrid() {
     const grid = document.getElementById('activityGrid');
     if (!grid) return;
@@ -156,6 +168,9 @@
       const cls = points >= 0 ? 'positive' : 'negative';
       const isAnytime = ANYTIME_ACTIVITIES.indexOf(key) >= 0;
       const isMsAddon = key === 'ms_addon';
+      // 今週のスケジュールに含まれているか
+      const isScheduledThisWeek = !outOfPeriod &&
+        (WEEK_SCHEDULED_ACTIVITIES[currentWeek] || []).indexOf(key) >= 0;
 
       // MSアドオンだけ「1メンバー1回」制約あり
       const msAddonRecorded = isMsAddon && !noMember && state.scores.some(s =>
@@ -173,6 +188,9 @@
       } else if (!isAnytime && outOfPeriod) {
         tileDisabled = true;
         disabledReason = '⛔ ゲーム期間外';
+      } else if (!isAnytime && !isScheduledThisWeek) {
+        tileDisabled = true;
+        disabledReason = '📅 今週は開催なし';
       }
 
       // 記録件数（MSアドオンは全期間で1回、1to1は全期間累計、その他は今週分）
