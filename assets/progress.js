@@ -206,11 +206,54 @@
   }
 
   // ── チャート ────────────────────────────
+  // 下限-2ptで軸を切って、下部に波線オーバーレイを描く plugin
+  const brokenAxisPlugin = {
+    id: 'brokenBottomAxis',
+    afterDatasetsDraw(chart) {
+      const { ctx, chartArea, scales } = chart;
+      if (!scales.y || !chartArea) return;
+      // データ内に-2未満の値があるかチェック（可視化の必要性）
+      const anyBelow = (datasets => datasets.some(d =>
+        d.data.some(v => v != null && v < -2)
+      ))(chart.data.datasets);
+      if (!anyBelow) return;
+      const yPos = chartArea.bottom;
+      ctx.save();
+      // 下1cmを黒塗りで隠す（データが線として少し漏れないように）
+      ctx.fillStyle = '#111118';
+      ctx.fillRect(chartArea.left, yPos - 8, chartArea.right - chartArea.left, 8);
+      // 波線を描く
+      ctx.strokeStyle = 'rgba(248,113,113,.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const amp = 3, len = 8;
+      for (let x = chartArea.left; x <= chartArea.right; x += 1) {
+        const y = yPos - 4 + Math.sin((x / len) * Math.PI) * amp;
+        if (x === chartArea.left) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      // 「以下省略」ラベル
+      ctx.fillStyle = 'rgba(248,113,113,.7)';
+      ctx.font = 'bold 10px "Hiragino Kaku Gothic ProN", sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText('−2pt 以下省略', chartArea.right - 4, yPos + 12);
+      ctx.restore();
+    }
+  };
+
   function createChart(datasets) {
     if (chart) chart.destroy();
+    // 表示用: -2未満の値はチャートで見せない（軸で clip）
+    const clipped = datasets.map(d => ({
+      ...d,
+      data: d.data.map(v => v == null ? null : Math.max(-2, v)),
+      _origData: d.data,  // オリジナル値をツールチップで参照
+    }));
     chart = new Chart(document.getElementById('mainChart'), {
       type: 'line',
-      data: { labels, datasets },
+      plugins: [brokenAxisPlugin],
+      data: { labels, datasets: clipped },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -234,7 +277,12 @@
                 const wLabels = ['開始日', '第1週締め', '第2週締め', '第3週締め', '第4週締め（最終日）'];
                 return `${d.getMonth()+1}/${d.getDate()} — ${wLabels[ctx[0].dataIndex]}`;
               },
-              label: ctx => `  ${ctx.dataset.label}：${ctx.parsed.y.toFixed(1)} pt`
+              label: ctx => {
+                // ツールチップは元のオリジナル値（-2でクリップしていない）を表示
+                const orig = ctx.dataset._origData && ctx.dataset._origData[ctx.dataIndex];
+                const val = orig != null ? orig : ctx.parsed.y;
+                return `  ${ctx.dataset.label}：${val.toFixed(1)} pt`;
+              }
             }
           }
         },
@@ -244,8 +292,15 @@
             ticks: { color: 'rgba(255,255,255,.5)', font: { size: 12, weight: '600' } }
           },
           y: {
+            min: -2,                 // -2pt を下限に、それ以下は波線省略
+            suggestedMax: 6,
             grid: { color: 'rgba(255,255,255,.06)', drawBorder: false },
-            ticks: { color: 'rgba(255,255,255,.4)', font: { size: 11 }, callback: v => v + 'pt' },
+            ticks: {
+              color: 'rgba(255,255,255,.4)',
+              font: { size: 11 },
+              callback: v => v + 'pt',
+              stepSize: 2,
+            },
             title: { display: true, text: '累積スコア（平均）', color: 'rgba(255,255,255,.25)', font: { size: 11 } }
           }
         }
