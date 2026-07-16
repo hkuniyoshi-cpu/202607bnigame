@@ -271,6 +271,12 @@
               const d = datasets[item.datasetIndex];
               return showAll || d._rank < 5;
             },
+            // ポイント高い順に並べる（ランキング表示と一致）
+            itemSort: (a, b) => {
+              const av = a.dataset._origData ? a.dataset._origData[a.dataIndex] : a.parsed.y;
+              const bv = b.dataset._origData ? b.dataset._origData[b.dataIndex] : b.parsed.y;
+              return bv - av;
+            },
             callbacks: {
               title: ctx => {
                 const d = DATE_POINTS[ctx[0].dataIndex];
