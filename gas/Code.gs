@@ -162,17 +162,21 @@ function submitScore_(body) {
 
   // 期間チェックをスキップする活動（MSアドオン=1回限り、1to1=上限なし）
   const ANYTIME_ACTIVITIES = ['ms_addon', 'one_to_one'];
+  const ONE_PER_MEMBER_ACTIVITIES = ['ms_addon', 'one_to_many'];
   const isAnytime = ANYTIME_ACTIVITIES.indexOf(activity) >= 0;
+
+  // 1メンバー1回限りの活動の重複チェック
+  if (ONE_PER_MEMBER_ACTIVITIES.indexOf(activity) >= 0) {
+    const already = readScores().some(s =>
+      String(s.member_id) === member_id && String(s.activity) === activity
+    );
+    if (already) {
+      return { ok: false, error: activity + '_already_recorded' };
+    }
+  }
 
   let week;
   if (isAnytime) {
-    if (activity === 'ms_addon') {
-      // MSアドオンは1メンバー1回限り
-      const already = readScores().some(s =>
-        String(s.member_id) === member_id && String(s.activity) === 'ms_addon'
-      );
-      if (already) return { ok: false, error: 'ms_addon_already_recorded' };
-    }
     // 週は現在の週、期間外なら第1週（開始前）／第4週（終了後）へ寄せる
     const w = _weekOf(now);
     week = w > 0 ? w : (now < new Date(CONFIG.GAME_START) ? 1 : 4);

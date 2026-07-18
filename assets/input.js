@@ -148,9 +148,12 @@
   const WEEK_SCHEDULED_ACTIVITIES = {
     1: ['key_skills', 'mindset', 'training_other', 'pt_ws_first', 'pt_ws_second'],
     2: ['key_skills', 'pt_ws_first', 'pt_ws_second'],
-    3: ['key_skills', 'pt_ws_first', 'pt_ws_second'],
+    3: ['key_skills', 'pt_ws_first', 'pt_ws_second', 'one_to_many'], // 7/28 1toMany
     4: ['key_skills', 'mindset', 'training_other'],
   };
+
+  // 1メンバー1回のみ許可される活動
+  const ONE_PER_MEMBER_ACTIVITIES = ['ms_addon', 'one_to_many'];
 
   function renderActivityGrid() {
     const grid = document.getElementById('activityGrid');
@@ -167,14 +170,15 @@
       const sign = points >= 0 ? '+' : '';
       const cls = points >= 0 ? 'positive' : 'negative';
       const isAnytime = ANYTIME_ACTIVITIES.indexOf(key) >= 0;
+      const isOncePerMember = ONE_PER_MEMBER_ACTIVITIES.indexOf(key) >= 0;
       const isMsAddon = key === 'ms_addon';
       // 今週のスケジュールに含まれているか
       const isScheduledThisWeek = !outOfPeriod &&
         (WEEK_SCHEDULED_ACTIVITIES[currentWeek] || []).indexOf(key) >= 0;
 
-      // MSアドオンだけ「1メンバー1回」制約あり
-      const msAddonRecorded = isMsAddon && !noMember && state.scores.some(s =>
-        String(s.member_id) === String(memberId) && s.activity === 'ms_addon'
+      // 1メンバー1回のみの制限チェック
+      const alreadyRecorded = isOncePerMember && !noMember && state.scores.some(s =>
+        String(s.member_id) === String(memberId) && s.activity === key
       );
 
       let tileDisabled = false;
@@ -182,7 +186,7 @@
       if (noMember) {
         tileDisabled = true;
         disabledReason = '👆 上でメンバーを選択';
-      } else if (isMsAddon && msAddonRecorded) {
+      } else if (isOncePerMember && alreadyRecorded) {
         tileDisabled = true;
         disabledReason = '🔒 入力済み';
       } else if (!isAnytime && outOfPeriod) {
@@ -193,11 +197,11 @@
         disabledReason = '📅 今週は開催なし';
       }
 
-      // 記録件数（MSアドオンは全期間で1回、1to1は全期間累計、その他は今週分）
+      // 記録件数（1回制限は全期間で1回、1to1は全期間累計、その他は今週分）
       let weekCount = 0;
       if (!noMember) {
-        if (isMsAddon) {
-          weekCount = msAddonRecorded ? 1 : 0;
+        if (isOncePerMember) {
+          weekCount = alreadyRecorded ? 1 : 0;
         } else if (isAnytime) {
           // 1to1は全期間累計
           weekCount = state.scores.filter(s =>
@@ -213,13 +217,14 @@
       }
 
       let countBadgeLabel = null;
-      if (isMsAddon && msAddonRecorded) countBadgeLabel = '受講済み';
+      if (isOncePerMember && alreadyRecorded) countBadgeLabel = isMsAddon ? '受講済み' : '参加済み';
       else if (isAnytime && weekCount > 0) countBadgeLabel = `累計 ${weekCount}件`;
       else if (!isAnytime && weekCount > 0) countBadgeLabel = `今週 ${weekCount}件`;
 
       let ctaText;
       if (tileDisabled) ctaText = disabledReason;
       else if (isMsAddon) ctaText = '＋ 受講記録する';
+      else if (key === 'one_to_many') ctaText = '＋ 参加記録する';
       else if (isAnytime) ctaText = '＋ 1件追加';
       else ctaText = '＋ タップで加算';
 
@@ -296,10 +301,11 @@
     const a = state.activities[activity];
     if (!a) return;
 
-    // MSアドオン1回制約をローカル即時チェック（サーバーも同じ検証を行う）
-    if (activity === 'ms_addon' && state.scores.some(s =>
-      String(s.member_id) === String(memberId) && s.activity === 'ms_addon')) {
-      toast('🔒 MSアドオンは既に受講記録済み', 'error');
+    // 1回制限のローカル即時チェック（サーバーも同じ検証を行う）
+    if (ONE_PER_MEMBER_ACTIVITIES.indexOf(activity) >= 0 && state.scores.some(s =>
+      String(s.member_id) === String(memberId) && s.activity === activity)) {
+      const msg = activity === 'ms_addon' ? '🔒 MSアドオンは既に受講記録済み' : '🔒 1toManyは既に参加記録済み';
+      toast(msg, 'error');
       return;
     }
 
@@ -385,6 +391,7 @@
       case 'invalid_activity':         return '活動区分が不正です';
       case 'invalid_member':           return 'メンバーが不正です';
       case 'ms_addon_already_recorded':return '🔒 MSアドオンは既に受講記録済みです（1人1回のみ）';
+      case 'one_to_many_already_recorded':return '🔒 1toManyは既に参加記録済みです（1人1回のみ）';
       default:                         return code || '送信に失敗しました';
     }
   }

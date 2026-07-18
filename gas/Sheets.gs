@@ -58,6 +58,7 @@ const _ACTIVITY_LABEL_FORMULA =
   'E{ROW}="pt_ws_first","パワーチームWS 前半",' +
   'E{ROW}="pt_ws_second","パワーチームWS 後半",' +
   'E{ROW}="one_to_one","1to1",' +
+  'E{ROW}="one_to_many","1toMany参加",' +
   'E{ROW}="visitor","ビジター招待",' +
   'E{ROW}="testimonial","推薦の言葉",' +
   'E{ROW}="absent","欠席",' +

@@ -18,6 +18,7 @@ const ACTIVITIES = {
   pt_ws_first:     { label: 'パワーチームWS 前半（ターゲットマーケット）',  points:  5, sign: '+' },
   pt_ws_second:    { label: 'パワーチームWS 後半（パワーチーム構築）',      points: 10, sign: '+' },
   one_to_one:      { label: '1to1（30分以上）',                            points:  1, sign: '+' },
+  one_to_many:     { label: '1toMany参加',                                 points:  1, sign: '+' },
   visitor:         { label: 'ビジター招待',                                points:  3, sign: '+' },
   testimonial:     { label: '推薦の言葉',                                  points:  2, sign: '+', teamWeeklyCap: 3 },
   absent:          { label: '欠席',                                        points: 10, sign: '-' },

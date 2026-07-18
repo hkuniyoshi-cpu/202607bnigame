@@ -38,6 +38,7 @@
     pt_ws_first:     { label: 'パワーチームWS 前半（ターゲットマーケット）',  points:  5, sign: '+' },
     pt_ws_second:    { label: 'パワーチームWS 後半（パワーチーム構築）',      points: 10, sign: '+' },
     one_to_one:      { label: '1to1（30分以上）',                            points:  1, sign: '+' },
+    one_to_many:     { label: '1toMany参加',                                 points:  1, sign: '+' },
     visitor:         { label: 'ビジター招待',                                points:  3, sign: '+' },
     testimonial:     { label: '推薦の言葉',                                  points:  2, sign: '+', teamWeeklyCap: 3 },
     absent:          { label: '欠席',                                        points: 10, sign: '-' },
@@ -149,13 +150,14 @@
     if (!activity) return { ok: false, error: 'invalid_activity' };
     // 期間チェックをスキップする活動
     const ANYTIME_ACTS = ['ms_addon', 'one_to_one'];
-    if (ANYTIME_ACTS.indexOf(body.activity) >= 0) {
-      if (body.activity === 'ms_addon') {
-        const arr = mockScoresStore.t01 || [];
-        const already = arr.some(s => s.member_id === body.member_id && s.activity === 'ms_addon');
-        if (already) return { ok: false, error: 'ms_addon_already_recorded' };
-      }
-    } else {
+    const ONE_PER_MEMBER = ['ms_addon', 'one_to_many'];
+    // 1メンバー1回制限チェック
+    if (ONE_PER_MEMBER.indexOf(body.activity) >= 0) {
+      const arr = mockScoresStore.t01 || [];
+      const already = arr.some(s => s.member_id === body.member_id && s.activity === body.activity);
+      if (already) return { ok: false, error: body.activity + '_already_recorded' };
+    }
+    if (ANYTIME_ACTS.indexOf(body.activity) < 0) {
       // 対象週チェック（過去週→期限切れ／未来週→未開放）
       const target = Number(body.target_week) || mockCurrentWeek;
       if (target < mockCurrentWeek) return { ok: false, error: 'week_closed', current: mockCurrentWeek };
