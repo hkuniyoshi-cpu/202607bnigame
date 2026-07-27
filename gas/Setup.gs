@@ -133,6 +133,10 @@ function rebuildSummary() {
 
   const teams = readTeams();
   const membersByTeam = membersGroupedByTeam();
+  const withdrawals = withdrawalsList();
+  // メンバーID → 退会週の辞書
+  const withdrawMap = {};
+  withdrawals.forEach(w => { if (w.withdrew_week) withdrawMap[w.member_id] = Number(w.withdrew_week); });
 
   const TEAMS_PER_ROW  = 3;
   const COLS_PER_TEAM  = 8; // 7列 + 1 gap
@@ -151,10 +155,12 @@ function rebuildSummary() {
     .setFontWeight('bold').setFontSize(14);
   sh.getRange(2, 1).setValue('※ scoresシートの入力が全自動でここに反映されます。')
     .setFontColor('#666').setFontSize(10);
-  sh.getRange(3, 1).setValue('※ チーム欄には「参加人数で割った平均点」を表示（4名/5名チームの公平化のため）')
+  sh.getRange(3, 1).setValue('※ チーム欄には「週別のアクティブ人数で割った平均を累積」した公平化スコアを表示（退場週から人数調整）')
     .setFontColor('#666').setFontSize(10);
+  sh.getRange(4, 1).setValue('※ 退場者は名前非表示ですが、退場前の履歴は各週合計・チーム合計に含まれます')
+    .setFontColor('#8B0000').setFontSize(10);
 
-  const START_ROW_OFFSET = 5;
+  const START_ROW_OFFSET = 6; // タイトル4行分の下
 
   teams.forEach((team, idx) => {
     const teamRow = Math.floor(idx / TEAMS_PER_ROW);
@@ -162,8 +168,18 @@ function rebuildSummary() {
     const startRow = START_ROW_OFFSET + teamRow * ROWS_PER_BLOCK;
     const startCol = 1 + teamCol * COLS_PER_TEAM;
 
-    const memberList = membersByTeam[String(team.team_id)] || [];
+    // 退会者を表示から除外
+    const allMembers = membersByTeam[String(team.team_id)] || [];
+    const memberList = allMembers.filter(m => !withdrawMap[m.member_id]);
     const memberCount = memberList.length;
+    // 週別のアクティブメンバー数（退会週から-1される）
+    const weekActive = [0, 0, 0, 0, 0];
+    for (let w = 1; w <= 4; w++) {
+      weekActive[w] = allMembers.filter(m => {
+        const ww = withdrawMap[m.member_id];
+        return !ww || ww > w;
+      }).length;
+    }
 
     // 1) チーム名ヘッダー（7列マージ）
     sh.getRange(startRow, startCol, 1, BLOCK_WIDTH)
@@ -214,21 +230,31 @@ function rebuildSummary() {
     // 5) 合計行
     const totalRow = startRow + 2 + MAX_MEMBERS;
     sh.getRange(totalRow, startCol).setValue('合計').setFontWeight('bold').setBackground('#F1F3F4');
-    if (memberCount > 0) {
-      // 各週の SUM
+    if (memberCount > 0 || allMembers.length > 0) {
+      // 各週の合計は scores からの SUMIFS（退会者の履歴も含めるため）
       for (let w = 0; w < 4; w++) {
         const colWeek = startCol + 1 + w;
-        const range = sh.getRange(startRow + 2, colWeek, memberCount, 1).getA1Notation();
-        sh.getRange(totalRow, colWeek).setFormula(`=SUM(${range})`)
+        sh.getRange(totalRow, colWeek)
+          .setFormula(`=IFERROR(SUMIFS(scores!G:G, scores!C:C, "${team.team_id}", scores!H:H, ${w + 1}),0)`)
           .setFontWeight('bold').setBackground('#F1F3F4');
       }
-      // 個人合計 SUM
-      const totalRange = sh.getRange(startRow + 2, startCol + 5, memberCount, 1).getA1Notation();
-      sh.getRange(totalRow, startCol + 5).setFormula(`=SUM(${totalRange})`)
+      // 個人合計列（合計行）: 4週分の合計 = チーム全期間累計
+      const weekCells = [];
+      for (let w = 0; w < 4; w++) {
+        weekCells.push(sh.getRange(totalRow, startCol + 1 + w).getA1Notation());
+      }
+      sh.getRange(totalRow, startCol + 5).setFormula(`=SUM(${weekCells.join(',')})`)
         .setFontWeight('bold').setBackground('#E8F0FE');
-      // チーム平均（人数で割った公平化スコア）
+      // チーム平均: 各週の合計 ÷ その週のアクティブ数 の累積（公平化）
+      const parts = [];
+      for (let w = 1; w <= 4; w++) {
+        if (weekActive[w] > 0) {
+          parts.push(`${weekCells[w-1]}/${weekActive[w]}`);
+        }
+      }
+      const teamFormula = parts.length > 0 ? `=IFERROR(${parts.join('+')},0)` : '=0';
       sh.getRange(totalRow, startCol + 6)
-        .setFormula(`=IFERROR(SUM(${totalRange})/${memberCount},0)`)
+        .setFormula(teamFormula)
         .setFontWeight('bold').setBackground('#FFF9C4')
         .setNumberFormat('0.00');
     }
@@ -271,6 +297,7 @@ const ADMIN_ACTIVITY_MAP = {
   'パワーチームWS 後半':      'pt_ws_second',
   '1to1':                    'one_to_one',
   '1toMany参加':              'one_to_many',
+  'メンバーズフォーラム参加':  'members_forum',
   'ビジター招待':             'visitor',
   '推薦の言葉':               'testimonial',
   '欠席':                    'absent',
@@ -285,6 +312,7 @@ const ADMIN_REFERENCE_ROWS = [
   ['パワーチームWS 後半',     '+10P（パワーチーム構築）'],
   ['1to1',                   '+1P（30分以上・沖縄リージョン内）'],
   ['1toMany参加',            '+1P（参加ごと・7/27, 7/28開催）'],
+  ['メンバーズフォーラム参加','+3P（8/7 対面開催・沖縄リージョン限定）'],
   ['ビジター招待',            '+3P'],
   ['推薦の言葉',              '+2P（チーム週上限3件）'],
   ['欠席',                   '-10P'],
@@ -460,11 +488,13 @@ function _updateMemberValidationForRow(sh, row, teamName) {
   let allowedNames;
   if (team) {
     allowedNames = readMembers()
-      .filter(m => String(m.team_id) === String(team.team_id))
+      .filter(m => String(m.team_id) === String(team.team_id) && !m.withdrew_week)
       .map(m => String(m.name));
   } else {
-    // チーム未選択 → 全メンバー許可
-    allowedNames = readMembers().map(m => String(m.name));
+    // チーム未選択 → 退会者以外の全メンバー
+    allowedNames = readMembers()
+      .filter(m => !m.withdrew_week)
+      .map(m => String(m.name));
   }
 
   const rule = SpreadsheetApp.newDataValidation()

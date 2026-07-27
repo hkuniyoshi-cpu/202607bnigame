@@ -123,13 +123,14 @@
   function renderMemberOptions() {
     const sel = document.getElementById('memberSelect');
     const prev = sel.value; // 選択を保持
+    // 退会者は選択肢から完全に除外
     sel.innerHTML = '<option value="">選択してください</option>' +
-      state.members.map(m =>
-        `<option value="${m.member_id}"${m.withdrew_week ? ' disabled' : ''}>${m.name}${m.withdrew_week ? '（退場）' : ''}</option>`
-      ).join('');
-    // 選択があれば復元、無効メンバーなら未選択のまま
+      state.members
+        .filter(m => !m.withdrew_week)
+        .map(m => `<option value="${m.member_id}">${m.name}</option>`)
+        .join('');
     if (prev) {
-      const opt = [...sel.options].find(o => o.value === prev && !o.disabled);
+      const opt = [...sel.options].find(o => o.value === prev);
       if (opt) sel.value = prev;
     }
   }
@@ -148,8 +149,8 @@
   const WEEK_SCHEDULED_ACTIVITIES = {
     1: ['key_skills', 'mindset', 'training_other', 'pt_ws_first', 'pt_ws_second'],
     2: ['key_skills', 'pt_ws_first', 'pt_ws_second'],
-    3: ['key_skills', 'pt_ws_first', 'pt_ws_second', 'one_to_many'], // 7/28 1toMany
-    4: ['key_skills', 'mindset', 'training_other'],
+    3: ['key_skills', 'pt_ws_first', 'pt_ws_second', 'one_to_many'], // 7/27, 7/28 1toMany
+    4: ['key_skills', 'mindset', 'training_other', 'members_forum'], // 8/7 メンバーズフォーラム
   };
 
   // 1メンバー1回のみ許可される活動
