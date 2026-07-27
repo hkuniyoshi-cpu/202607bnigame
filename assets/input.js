@@ -153,7 +153,7 @@
   };
 
   // 1メンバー1回のみ許可される活動
-  const ONE_PER_MEMBER_ACTIVITIES = ['ms_addon', 'one_to_many'];
+  const ONE_PER_MEMBER_ACTIVITIES = ['ms_addon']; // 1toManyは複数参加OK
 
   function renderActivityGrid() {
     const grid = document.getElementById('activityGrid');
@@ -224,7 +224,7 @@
       let ctaText;
       if (tileDisabled) ctaText = disabledReason;
       else if (isMsAddon) ctaText = '＋ 受講記録する';
-      else if (key === 'one_to_many') ctaText = '＋ 参加記録する';
+      else if (key === 'one_to_many') ctaText = '＋ 参加を1件追加';
       else if (isAnytime) ctaText = '＋ 1件追加';
       else ctaText = '＋ タップで加算';
 

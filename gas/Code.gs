@@ -162,7 +162,7 @@ function submitScore_(body) {
 
   // 期間チェックをスキップする活動（MSアドオン=1回限り、1to1=上限なし）
   const ANYTIME_ACTIVITIES = ['ms_addon', 'one_to_one'];
-  const ONE_PER_MEMBER_ACTIVITIES = ['ms_addon', 'one_to_many'];
+  const ONE_PER_MEMBER_ACTIVITIES = ['ms_addon']; // 1toManyは複数参加OKなので外す
   const isAnytime = ANYTIME_ACTIVITIES.indexOf(activity) >= 0;
 
   // 1メンバー1回限りの活動の重複チェック

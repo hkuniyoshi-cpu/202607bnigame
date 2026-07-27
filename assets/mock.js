@@ -150,7 +150,7 @@
     if (!activity) return { ok: false, error: 'invalid_activity' };
     // 期間チェックをスキップする活動
     const ANYTIME_ACTS = ['ms_addon', 'one_to_one'];
-    const ONE_PER_MEMBER = ['ms_addon', 'one_to_many'];
+    const ONE_PER_MEMBER = ['ms_addon']; // 1toManyは複数参加OK
     // 1メンバー1回制限チェック
     if (ONE_PER_MEMBER.indexOf(body.activity) >= 0) {
       const arr = mockScoresStore.t01 || [];
