@@ -509,14 +509,15 @@ function _updateMemberValidationForRow(sh, row, teamName) {
   }
 }
 
-/** 反映済み行の scores を削除して ✓/時刻/ノートをクリアする */
+/**
+ * 反映済み行の scores を削除して ✓/時刻/ノートをクリアする
+ * ※注: 呼び出し元（onEdit / syncAdminEntries）が既に LockService を保持している前提。
+ *   ここで再度 waitLock するとネスト・タイムアウトで ✓ が消えたまま resync できなくなるため
+ *   内部の lock 取得は行わない。
+ */
 function _revertAdminRow(admin, rowIndex, scoreId) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
-    if (scoreId) deleteScoreByIdAny(scoreId);
-  } finally {
-    lock.releaseLock();
+  if (scoreId) {
+    try { deleteScoreByIdAny(scoreId); } catch (e) { console.error('deleteScoreByIdAny error:', e); }
   }
   admin.getRange(rowIndex, 6).clearContent().clearNote();
   admin.getRange(rowIndex, 7).clearContent();
@@ -643,7 +644,10 @@ function onEdit(e) {
   // 競合防止: 同時編集で二重反映が起きないようスクリプトロックを取得
   const lock = LockService.getScriptLock();
   try {
-    if (!lock.tryLock(15000)) return;
+    if (!lock.tryLock(20000)) {
+      console.error('onEdit: could not acquire lock in 20s, skipping edit for row=' + (e && e.range && e.range.getRow()));
+      return;
+    }
     if (!e || !e.range) return;
     const sh = e.range.getSheet();
     if (sh.getName() !== ADMIN_SHEET_NAME) return;
