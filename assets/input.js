@@ -150,7 +150,7 @@
     1: ['key_skills', 'mindset', 'training_other', 'pt_ws_first', 'pt_ws_second'],
     2: ['key_skills', 'pt_ws_first', 'pt_ws_second'],
     3: ['key_skills', 'pt_ws_first', 'pt_ws_second', 'one_to_many'], // 7/27, 7/28 1toMany
-    4: ['key_skills', 'mindset', 'training_other', 'members_forum'], // 8/7 メンバーズフォーラム
+    4: ['key_skills', 'mindset', 'training_other', 'members_forum', 'one_to_many'], // 8/7 メンバーズフォーラム / 8/11 1toMany(奥家 君代 主催)
   };
 
   // 1メンバー1回のみ許可される活動
