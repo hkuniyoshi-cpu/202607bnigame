@@ -853,6 +853,98 @@ function dedupeScores() {
 }
 
 /**
+ * 【推薦の言葉のみ】管理者入力シートの件数に scores を合わせる。
+ * ビジター/欠席は一切触らない。1to1などその他も一切触らない。
+ * 削除優先度: ノート保護 → その他は timestamp 新しい順から削除（古い方を残す）
+ */
+function reconcileTestimonialsOnly() {
+  const TARGET_ACTIVITY = 'testimonial';
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const admin = ss.getSheetByName(ADMIN_SHEET_NAME);
+  const scoresSh = _sheet(CONFIG.SHEETS.SCORES);
+  if (!admin) { SpreadsheetApp.getUi().alert('管理者入力シートが見つかりません'); return; }
+
+  const lookup = _buildAdminLookup();
+  const HEADER_ROW = 5;
+  const lastAdminRow = admin.getLastRow();
+  const adminCount = {};
+  const protectedIds = {};
+
+  if (lastAdminRow > HEADER_ROW) {
+    const adminData = admin.getRange(HEADER_ROW + 1, 1, lastAdminRow - HEADER_ROW, 7).getValues();
+    const notes = admin.getRange(HEADER_ROW + 1, 6, lastAdminRow - HEADER_ROW, 1).getNotes();
+    adminData.forEach((row, i) => {
+      if (_isAdminRowIncomplete(row)) return;
+      const [week, teamName, memberName, activityLabel] = row;
+      const activity = ADMIN_ACTIVITY_MAP[activityLabel];
+      if (activity !== TARGET_ACTIVITY) return;
+      const mInfo = lookup.memberByName[String(memberName)];
+      if (!mInfo) return;
+      const key = [mInfo.id, activity, Number(week)].join('|');
+      adminCount[key] = (adminCount[key] || 0) + 1;
+      const noteId = notes[i][0];
+      if (noteId) protectedIds[String(noteId)] = true;
+    });
+  }
+
+  const values = scoresSh.getDataRange().getValues();
+  const rows = values.slice(1);
+  const scoresByKey = {};
+  rows.forEach((r, i) => {
+    if (r.every(c => c === '' || c === null)) return;
+    const [id, ts, team_id, member_id, activity, count, points, week] = r;
+    if (String(activity) !== TARGET_ACTIVITY) return;
+    const key = [String(member_id), String(activity), Number(week)].join('|');
+    if (!scoresByKey[key]) scoresByKey[key] = [];
+    scoresByKey[key].push({ rowIndex: i + 2, id: String(id), ts });
+  });
+
+  const removeRows = [];
+  const report = [];
+  const warnings = [];
+  const members = readMembers();
+  const memberName = {};
+  members.forEach(m => { memberName[String(m.member_id)] = String(m.name); });
+
+  Object.keys(scoresByKey).forEach(key => {
+    const group = scoresByKey[key];
+    const want = adminCount[key] || 0;
+    const [mid, act, wk] = key.split('|');
+    const nm = memberName[mid] || mid;
+    if (group.length > want) {
+      const removable = group
+        .filter(g => !protectedIds[g.id])
+        .sort((a, b) => new Date(b.ts) - new Date(a.ts));
+      const excess = group.length - want;
+      const toRemove = removable.slice(0, excess);
+      toRemove.forEach(t => removeRows.push(t.rowIndex));
+      report.push(`${nm} / W${wk}: scores=${group.length} → admin=${want} → ${toRemove.length}件削除`);
+      if (toRemove.length < excess) {
+        warnings.push(`${nm} / W${wk}: ${excess}件消したいがノート保護で${toRemove.length}件のみ`);
+      }
+    } else if (group.length < want) {
+      warnings.push(`${nm} / W${wk}: scores=${group.length} / admin=${want} (scoresが不足・要再sync)`);
+    }
+  });
+
+  if (!removeRows.length && !warnings.length) {
+    SpreadsheetApp.getUi().alert('推薦の言葉は管理者入力シートと一致しています');
+    return;
+  }
+
+  removeRows.sort((a, b) => b - a).forEach(r => scoresSh.deleteRow(r));
+
+  let msg = `✅ 推薦の言葉: scoresから ${removeRows.length} 件削除\n`;
+  msg += `（ビジター・欠席・1to1などその他活動は一切触っていません）\n\n`;
+  msg += report.join('\n');
+  if (warnings.length) {
+    msg += `\n\n⚠ 警告:\n` + warnings.join('\n');
+  }
+  Logger.log(msg);
+  SpreadsheetApp.getUi().alert(msg.length > 1400 ? msg.slice(0, 1400) + '\n（続きは実行ログ）' : msg);
+}
+
+/**
  * 【真実源=管理者入力シート】管理者管理項目の scores を管理者入力シートの件数に合わせる。
  * dedupeAdminManaged(最古1件だけ残す) と違い、管理者入力に2件あるなら scores も2件残す。
  *
