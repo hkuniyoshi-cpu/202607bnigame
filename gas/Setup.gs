@@ -853,6 +853,145 @@ function dedupeScores() {
 }
 
 /**
+ * 【安全dedupe】管理者管理項目（欠席・推薦の言葉・ビジター招待）に絞って重複を1件にする。
+ * 1to1・キースキルズなど「複数回OK」の活動には触れない。
+ * 最古のタイムスタンプの1件だけ残す。管理者入力シートのノート(score_id)との整合は onEdit 再実行で自然に復旧する。
+ */
+function dedupeAdminManaged() {
+  const ADMIN_MANAGED = ['absent', 'testimonial', 'visitor'];
+  const sh = _sheet(CONFIG.SHEETS.SCORES);
+  const values = sh.getDataRange().getValues();
+  if (values.length < 3) {
+    SpreadsheetApp.getUi().alert('scoresが空です');
+    return;
+  }
+  const rows = values.slice(1);
+  const groups = {};
+  rows.forEach((r, i) => {
+    if (r.every(c => c === '' || c === null)) return;
+    const [id, ts, team_id, member_id, activity, count, points, week] = r;
+    if (ADMIN_MANAGED.indexOf(String(activity)) < 0) return;
+    const key = [member_id, activity, week].join('|');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push({ rowIndex: i + 2, ts, id });
+  });
+
+  const removeRows = [];
+  const report = [];
+  Object.keys(groups).forEach(k => {
+    const g = groups[k];
+    if (g.length < 2) return;
+    g.sort((a, b) => new Date(a.ts) - new Date(b.ts));
+    const dupes = g.slice(1); // 最古を残す
+    dupes.forEach(d => removeRows.push(d.rowIndex));
+    report.push(`${k} → ${g.length}件（${dupes.length}件削除）`);
+  });
+
+  if (!removeRows.length) {
+    SpreadsheetApp.getUi().alert('管理者管理項目に重複はありません');
+    return;
+  }
+
+  removeRows.sort((a, b) => b - a).forEach(r => sh.deleteRow(r));
+
+  SpreadsheetApp.getUi().alert(
+    `✅ 管理者管理項目の重複 ${removeRows.length} 件を削除しました\n\n` +
+    report.slice(0, 20).join('\n') +
+    (report.length > 20 ? `\n... 他${report.length - 20}件` : '') +
+    `\n\n※ 管理者入力シートのノート(score_id)は 手動再同期で必要なら復旧してください`
+  );
+}
+
+/**
+ * 【診断のみ・削除しない】scoresシートの重複候補を一覧表示する。
+ * ダイアログとログの両方に出力。
+ *
+ *  ・強い重複疑い（管理者管理: 欠席・推薦の言葉・ビジター招待）
+ *      同じ (member_id, activity, week) が2件以上 → 必ず重複（管理者集計は1週1回まで）
+ *  ・弱い重複疑い（それ以外）
+ *      同じ (member_id, activity, week, count, points) が2件以上 → 内容完全一致
+ */
+function auditDuplicateScores() {
+  const ADMIN_MANAGED = ['absent', 'testimonial', 'visitor'];
+  const sh = _sheet(CONFIG.SHEETS.SCORES);
+  const values = sh.getDataRange().getValues();
+  if (values.length < 3) {
+    SpreadsheetApp.getUi().alert('scoresが空です');
+    return;
+  }
+  const rows = values.slice(1).filter(r => !r.every(c => c === '' || c === null));
+  const members = readMembers();
+  const memberName = {};
+  members.forEach(m => { memberName[String(m.member_id)] = String(m.name); });
+
+  // 強い重複: (member_id, activity, week) — 管理者管理の3活動のみ
+  const strongGroups = {};
+  // 弱い重複: (member_id, activity, week, count, points) — 全活動
+  const weakGroups = {};
+
+  rows.forEach((r, i) => {
+    const [id, ts, team_id, member_id, activity, count, points, week] = r;
+    const rowIndex = i + 2;
+    if (ADMIN_MANAGED.indexOf(String(activity)) >= 0) {
+      const key = [member_id, activity, week].join('|');
+      if (!strongGroups[key]) strongGroups[key] = [];
+      strongGroups[key].push({ rowIndex, id, ts, count, points });
+    }
+    const wkey = [member_id, activity, week, count, points].join('|');
+    if (!weakGroups[wkey]) weakGroups[wkey] = [];
+    weakGroups[wkey].push({ rowIndex, id, ts });
+  });
+
+  const strongDupes = [];
+  Object.keys(strongGroups).forEach(k => {
+    if (strongGroups[k].length >= 2) {
+      const [mid, act, wk] = k.split('|');
+      strongDupes.push({
+        member: memberName[mid] || mid,
+        activity: act,
+        week: wk,
+        entries: strongGroups[k],
+      });
+    }
+  });
+
+  const weakDupes = [];
+  Object.keys(weakGroups).forEach(k => {
+    if (weakGroups[k].length >= 2) {
+      const [mid, act, wk, cnt, pts] = k.split('|');
+      // 強い重複に含まれている管理者管理項目は除外
+      if (ADMIN_MANAGED.indexOf(act) >= 0) return;
+      weakDupes.push({
+        member: memberName[mid] || mid,
+        activity: act,
+        week: wk,
+        count: cnt,
+        points: pts,
+        entries: weakGroups[k],
+      });
+    }
+  });
+
+  let msg = `🔎 重複調査結果\n\n`;
+  msg += `■ 管理者管理の重複（必ず要削除・1週1回まで）: ${strongDupes.length}件\n`;
+  strongDupes.slice(0, 20).forEach(d => {
+    msg += `  ・${d.member} / ${d.activity} / W${d.week} → ${d.entries.length}件（rows: ${d.entries.map(e => e.rowIndex).join(', ')}）\n`;
+  });
+  if (strongDupes.length > 20) msg += `  ... 他${strongDupes.length - 20}件\n`;
+
+  msg += `\n■ 内容完全一致の重複（要確認・その他活動）: ${weakDupes.length}件\n`;
+  weakDupes.slice(0, 20).forEach(d => {
+    msg += `  ・${d.member} / ${d.activity} / W${d.week} / ×${d.count} / ${d.points}P → ${d.entries.length}件（rows: ${d.entries.map(e => e.rowIndex).join(', ')}）\n`;
+  });
+  if (weakDupes.length > 20) msg += `  ... 他${weakDupes.length - 20}件\n`;
+
+  msg += `\n削除するには dedupeScores を実行してください（最古の1件だけ残します）`;
+
+  Logger.log(msg);
+  SpreadsheetApp.getUi().alert(msg.length > 1400 ? msg.slice(0, 1400) + '\n\n（続きは実行ログを参照）' : msg);
+}
+
+/**
  * 指定メンバー（氏名）のスコア一覧をコンソールに出力（診断用）
  */
 function debugMemberScores(memberName) {
