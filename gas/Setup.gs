@@ -157,7 +157,7 @@ function rebuildSummary() {
     .setFontColor('#666').setFontSize(10);
   sh.getRange(3, 1).setValue('※ チーム欄には「週別のアクティブ人数で割った平均を累積」した公平化スコアを表示（退場週から人数調整）')
     .setFontColor('#666').setFontSize(10);
-  sh.getRange(4, 1).setValue('※ 退場者は名前非表示ですが、退場前の履歴は各週合計・チーム合計に含まれます')
+  sh.getRange(4, 1).setValue('※ 退場者は「（○週まで参加）」表記でグレー表示。参加週の点数は各週合計・チーム合計・チーム平均に含まれます')
     .setFontColor('#8B0000').setFontSize(10);
 
   const START_ROW_OFFSET = 6; // タイトル4行分の下
@@ -168,9 +168,11 @@ function rebuildSummary() {
     const startRow = START_ROW_OFFSET + teamRow * ROWS_PER_BLOCK;
     const startCol = 1 + teamCol * COLS_PER_TEAM;
 
-    // 退会者を表示から除外
+    // 退場者もリストに含める（末尾に配置＆参加週数表記）
     const allMembers = membersByTeam[String(team.team_id)] || [];
-    const memberList = allMembers.filter(m => !withdrawMap[m.member_id]);
+    const activeMembers = allMembers.filter(m => !withdrawMap[m.member_id]);
+    const withdrawnMembers = allMembers.filter(m => withdrawMap[m.member_id]);
+    const memberList = activeMembers.concat(withdrawnMembers);
     const memberCount = memberList.length;
     // 週別のアクティブメンバー数（退会週から-1される）
     const weekActive = [0, 0, 0, 0, 0];
@@ -203,7 +205,12 @@ function rebuildSummary() {
     memberList.forEach((m, mi) => {
       const row = startRow + 2 + mi;
       const mid = m.member_id;
-      sh.getRange(row, startCol).setValue(m.name);
+      const ww = withdrawMap[mid];
+      const displayName = ww ? `${m.name}（${ww}週まで参加）` : m.name;
+      const nameCell = sh.getRange(row, startCol).setValue(displayName);
+      if (ww) {
+        nameCell.setFontColor('#8a8a8a').setFontStyle('italic');
+      }
       // 第1〜4週の SUMIFS
       for (let w = 1; w <= 4; w++) {
         sh.getRange(row, startCol + w)
