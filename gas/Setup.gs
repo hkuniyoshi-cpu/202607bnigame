@@ -853,6 +853,109 @@ function dedupeScores() {
 }
 
 /**
+ * 【真実源=管理者入力シート】管理者管理項目の scores を管理者入力シートの件数に合わせる。
+ * dedupeAdminManaged(最古1件だけ残す) と違い、管理者入力に2件あるなら scores も2件残す。
+ *
+ * 動作:
+ *  ・管理者管理3活動 (absent/testimonial/visitor) について
+ *    (member_id, activity, week) ごとに:
+ *      - 管理者入力シートで complete な行の件数を数える = adminCount
+ *      - scoresでの件数 = scoresCount
+ *      - scoresCount > adminCount なら、超過分を削除
+ *          優先度: 管理者入力シートのノートに残っている score_id は絶対残す
+ *                  それ以外は timestamp の新しい順から削除（=古い方を残す）
+ *      - scoresCount < adminCount は WARNING表示のみ（データ欠落・要再sync）
+ */
+function reconcileByAdminCount() {
+  const ADMIN_MANAGED = ['absent', 'testimonial', 'visitor'];
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const admin = ss.getSheetByName(ADMIN_SHEET_NAME);
+  const scoresSh = _sheet(CONFIG.SHEETS.SCORES);
+  if (!admin) { SpreadsheetApp.getUi().alert('管理者入力シートが見つかりません'); return; }
+
+  // 1) 管理者入力シートから (member_id, activity, week) ごとの正解件数 & 保護score_id
+  const lookup = _buildAdminLookup();
+  const HEADER_ROW = 5;
+  const lastAdminRow = admin.getLastRow();
+  const adminCount = {};    // key -> count (管理者入力シート上の完成行数)
+  const protectedIds = {};  // score_id -> true (ノートに残っているscore_id、必ず残す)
+
+  if (lastAdminRow > HEADER_ROW) {
+    const adminData = admin.getRange(HEADER_ROW + 1, 1, lastAdminRow - HEADER_ROW, 7).getValues();
+    // F列のノートは値ではなくメタなので別途取得
+    const notes = admin.getRange(HEADER_ROW + 1, 6, lastAdminRow - HEADER_ROW, 1).getNotes();
+    adminData.forEach((row, i) => {
+      if (_isAdminRowIncomplete(row)) return;
+      const [week, teamName, memberName, activityLabel] = row;
+      const activity = ADMIN_ACTIVITY_MAP[activityLabel];
+      if (!activity || ADMIN_MANAGED.indexOf(activity) < 0) return;
+      const mInfo = lookup.memberByName[String(memberName)];
+      if (!mInfo) return;
+      const key = [mInfo.id, activity, Number(week)].join('|');
+      adminCount[key] = (adminCount[key] || 0) + 1;
+      const noteId = notes[i][0];
+      if (noteId) protectedIds[String(noteId)] = true;
+    });
+  }
+
+  // 2) scores から同じキーでグループ化
+  const values = scoresSh.getDataRange().getValues();
+  const rows = values.slice(1);
+  const scoresByKey = {}; // key -> [{rowIndex, id, ts}]
+  rows.forEach((r, i) => {
+    if (r.every(c => c === '' || c === null)) return;
+    const [id, ts, team_id, member_id, activity, count, points, week] = r;
+    if (ADMIN_MANAGED.indexOf(String(activity)) < 0) return;
+    const key = [String(member_id), String(activity), Number(week)].join('|');
+    if (!scoresByKey[key]) scoresByKey[key] = [];
+    scoresByKey[key].push({ rowIndex: i + 2, id: String(id), ts });
+  });
+
+  // 3) 超過分を選出して削除
+  const removeRows = [];
+  const report = [];
+  const warnings = [];
+
+  Object.keys(scoresByKey).forEach(key => {
+    const group = scoresByKey[key];
+    const want = adminCount[key] || 0;
+    if (group.length > want) {
+      // 削除候補: 保護されていない score_id を timestamp 新しい順に
+      const removable = group
+        .filter(g => !protectedIds[g.id])
+        .sort((a, b) => new Date(b.ts) - new Date(a.ts));
+      const excess = group.length - want;
+      const toRemove = removable.slice(0, excess);
+      toRemove.forEach(t => removeRows.push(t.rowIndex));
+      report.push(`${key} → scores=${group.length}件 / admin=${want}件 → ${toRemove.length}件削除`);
+      if (toRemove.length < excess) {
+        warnings.push(`${key}: ${excess}件削除したかったがノート保護で${toRemove.length}件しか消せず`);
+      }
+    } else if (group.length < want) {
+      warnings.push(`${key}: scores=${group.length}件 / admin=${want}件（scoresが足りない・要再sync）`);
+    }
+  });
+
+  if (!removeRows.length && !warnings.length) {
+    SpreadsheetApp.getUi().alert('管理者管理項目は管理者入力シートと一致しています');
+    return;
+  }
+
+  // 下から順に削除
+  removeRows.sort((a, b) => b - a).forEach(r => scoresSh.deleteRow(r));
+
+  let msg = `✅ scores から ${removeRows.length} 件を削除しました（管理者入力シートと整合）\n\n`;
+  msg += report.slice(0, 20).join('\n');
+  if (report.length > 20) msg += `\n... 他${report.length - 20}件`;
+  if (warnings.length) {
+    msg += `\n\n⚠ 警告:\n` + warnings.slice(0, 10).join('\n');
+    if (warnings.length > 10) msg += `\n... 他${warnings.length - 10}件`;
+  }
+  Logger.log(msg);
+  SpreadsheetApp.getUi().alert(msg.length > 1400 ? msg.slice(0, 1400) + '\n（続きは実行ログ）' : msg);
+}
+
+/**
  * 【安全dedupe】管理者管理項目（欠席・推薦の言葉・ビジター招待）に絞って重複を1件にする。
  * 1to1・キースキルズなど「複数回OK」の活動には触れない。
  * 最古のタイムスタンプの1件だけ残す。管理者入力シートのノート(score_id)との整合は onEdit 再実行で自然に復旧する。
