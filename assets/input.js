@@ -274,17 +274,21 @@
     // 新しい順
     filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+    // 管理者側が管理する活動 — 小さな鍵マーク付き＆削除不可
+    const ADMIN_MANAGED = ['absent', 'testimonial', 'visitor'];
+
     list.innerHTML = filtered.map(s => {
       const m = state.members.find(mm => String(mm.member_id) === String(s.member_id));
       const a = state.activities[s.activity];
       const pending = s._pending;
+      const isAdminManaged = ADMIN_MANAGED.indexOf(s.activity) >= 0;
       return `
-        <div class="hist-item${pending ? ' pending' : ''}">
+        <div class="hist-item${pending ? ' pending' : ''}${isAdminManaged ? ' admin-managed' : ''}">
           <div class="hist-member">${m ? m.name : '?'}${pending ? ' <span class="hist-pending-dot">●</span>' : ''}</div>
-          <div class="hist-act">${a ? a.label : s.activity}</div>
+          <div class="hist-act">${a ? a.label : s.activity}${isAdminManaged ? ' <span class="hist-admin-mark" title="管理者が管理する項目">🔒</span>' : ''}</div>
           <div class="hist-count">×${s.count}</div>
           <div class="hist-pts ${s.points >= 0 ? 'p' : 'n'}">${s.points > 0 ? '+' : ''}${s.points}P</div>
-          <button class="hist-del" onclick="deleteScore('${s.id}')">削除</button>
+          ${isAdminManaged ? '<span class="hist-nodel">—</span>' : `<button class="hist-del" onclick="deleteScore('${s.id}')">削除</button>`}
         </div>
       `;
     }).join('');
@@ -393,6 +397,7 @@
       case 'invalid_member':           return 'メンバーが不正です';
       case 'ms_addon_already_recorded':return '🔒 MSアドオンは既に受講記録済みです（1人1回のみ）';
       case 'one_to_many_already_recorded':return '🔒 1toManyは既に参加記録済みです（1人1回のみ）';
+      case 'admin_managed_not_deletable':return '🔒 この項目は管理者が管理しています（削除できません）';
       default:                         return code || '送信に失敗しました';
     }
   }

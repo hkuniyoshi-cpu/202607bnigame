@@ -310,6 +310,21 @@
 }
 .hist-del:hover { background: rgba(248,113,113,.1); color: #f87171; border-color: rgba(248,113,113,.3); }
 
+/* 管理者管理の項目（欠席・推薦・ビジター） */
+.hist-admin-mark {
+  display: inline-block; font-size: 10px; opacity: .55; margin-left: 4px;
+  vertical-align: middle;
+}
+.hist-item.admin-managed {
+  background: rgba(255,255,255,.015);
+  border-color: rgba(255,255,255,.03);
+}
+.hist-nodel {
+  display: inline-block; min-width: 40px; text-align: center;
+  color: rgba(255,255,255,.15); font-size: 11px; padding: 4px 10px;
+  user-select: none;
+}
+
 .empty-history {
   text-align: center; color: rgba(255,255,255,.3);
   padding: 40px 20px; font-size: 13px;

@@ -224,6 +224,12 @@ function deleteScore_(body) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
+    // 管理者管理の活動（欠席・推薦の言葉・ビジター招待）はリーダー側から削除不可
+    const ADMIN_MANAGED = ['absent', 'testimonial', 'visitor'];
+    const target = readScores().find(s => String(s.id) === scoreId && String(s.team_id) === String(teamId));
+    if (target && ADMIN_MANAGED.indexOf(String(target.activity)) >= 0) {
+      return { ok: false, error: 'admin_managed_not_deletable' };
+    }
     const ok = deleteScoreById(scoreId, teamId);
     return ok ? { ok: true } : { ok: false, error: 'not_found_or_forbidden' };
   } finally {
